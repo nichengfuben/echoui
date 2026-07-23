@@ -1,0 +1,67 @@
+[project]
+name = "echoui"
+version = "0.9.0"
+description = "Universal Python-first UI framework — one Screen-Stage-Sprite paradigm compiles to Web, desktop, mobile, TUI, and GUI."
+authors = [{ name = "nichengfuben", email = "nichengfuben@outlook.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["ui", "framework", "compiler", "fullstack", "web", "desktop", "mobile", "tui", "gui"]
+dependencies = [
+    "watchfiles>=0.21.0",
+    "rjsmin>=1.2.2",
+    "csscompressor>=0.9.5",
+]
+
+[project.optional-dependencies]
+web = ["aiohttp>=3.9.5", "msgpack>=1.0.8"]
+fastapi = ["fastapi>=0.110.0", "uvicorn[standard]>=0.29.0"]
+desktop = ["PySide6>=6.7.0", "PyInstaller>=6.6.0"]
+mobile = []
+tui = ["rich>=13.7.1", "textual>=0.58.0"]
+gui = ["PySide6>=6.7.0"]
+data = ["pyarrow>=15.0.2"]
+physics = ["box2d-py>=2.3.10"]
+dev = [
+    "pytest>=8.1.1",
+    "pytest-asyncio>=0.23.6",
+    "ruff>=0.4.1",
+    "mypy>=1.9.0",
+    "build>=1.2.1",
+    "twine>=5.1.1",
+    "hatchling",
+]
+dev-extended = ["pytest-qt>=4.4.0", "playwright>=1.43.0"]
+all = ["echoui[web,fastapi,desktop,tui,gui,data,physics,dev,dev-extended]"]
+
+[project.urls]
+Homepage = "https://github.com/nichengfuben/echoui"
+Documentation = "https://echoui.dev"
+
+[project.scripts]
+echoui = "echoui.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["echoui"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_ignores = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

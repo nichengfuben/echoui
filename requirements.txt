@@ -1,0 +1,12 @@
+watchfiles==0.21.0
+rjsmin==1.2.2
+csscompressor==0.9.5
+aiohttp==3.9.5
+msgpack==1.0.8
+rich==13.7.1
+textual==0.58.0
+pytest==8.1.1
+pytest-asyncio==0.23.6
+ruff==0.4.1
+mypy==1.9.0
+hatchling
