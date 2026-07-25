@@ -1,4 +1,4 @@
-"""2D endless runner — SSS: Screen → Stage → Sprite (PLAN §1 / §4)."""
+"""2D endless runner — SSS: Screen → Stage → Sprite."""
 
 from __future__ import annotations
 

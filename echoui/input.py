@@ -1,4 +1,4 @@
-"""Keyboard and mouse input (PLAN §10)."""
+"""Keyboard and mouse input."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""PLAN §15 async/concurrency module tests."""
+"""Async and concurrency module tests."""
 
 
 from echoui.async_ import gather, retry, timeout

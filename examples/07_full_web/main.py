@@ -1,4 +1,4 @@
-"""Full web dashboard — Chart.js, MapLibre, OPFS storage, forms (PLAN §11/§12/§22)."""
+"""Full web dashboard — Chart.js, MapLibre, OPFS storage, forms."""
 
 from __future__ import annotations
 

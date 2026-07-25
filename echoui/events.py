@@ -34,7 +34,7 @@ DOM_TO_BROWSER = {
 
 @dataclass
 class Event:
-    """Normalized event payload (PLAN §10)."""
+    """Normalized event payload."""
 
     type: str
     x: float = 0

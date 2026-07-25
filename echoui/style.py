@@ -49,7 +49,7 @@ def theme(name: Optional[str] = None) -> Any:
 
 
 def css(rules: str) -> str:
-    """Global CSS escape (PLAN §8)."""
+    """Global CSS escape hatch."""
     return rules
 
 

@@ -1,4 +1,4 @@
-"""Media demo — HTML5 video + audio roles (PLAN §19)."""
+"""Media demo — HTML5 video + audio roles."""
 
 from __future__ import annotations
 

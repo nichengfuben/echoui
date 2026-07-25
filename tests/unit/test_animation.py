@@ -1,4 +1,4 @@
-"""Animation tween/spring tests (PLAN §16)."""
+"""Animation tween/spring tests."""
 
 from __future__ import annotations
 

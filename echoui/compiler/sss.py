@@ -1,4 +1,4 @@
-"""SSS tree validation and normalization (PLAN §1 / §4 / §34).
+"""SSS tree validation and normalization.
 
 App → Screen → Stage (free mode) → Sprite
 App → Screen → Sprite (flow mode; col/row/box are Sprites)
@@ -28,7 +28,7 @@ def normalize_screen_tree(root: Any) -> Any:
 
 
 def validate_sss_tree(root: Any) -> None:
-    """Raise SSSError if the screen tree violates PLAN SSS rules."""
+    """Raise SSSError if the screen tree violates SSS rules."""
     normalize_screen_tree(root)
     layout = root.props.get("layout", "flow")
     if layout == "free":
@@ -55,7 +55,7 @@ def _raise_free_screen(root: Any, bad: Any | None = None) -> None:
         direction = bad.props.get("direction")
         if direction in ("col", "row") or _contains_stage(bad):
             raise SSSError(
-                "free Screen.build() must return stage(...) directly (PLAN §4.2). "
+                "free Screen.build() must return stage(...) directly. "
                 "Do not wrap the Stage in col/row/box. "
                 "Put HUD text, buttons, and game Sprites inside stage(...)."
             )
@@ -65,7 +65,7 @@ def _raise_free_screen(root: Any, bad: Any | None = None) -> None:
             "Extra siblings belong inside the Stage as Sprites."
         )
     raise SSSError(
-        "free Screen.build() must return stage(...) as the root (PLAN §1 / §4.2)."
+        "free Screen.build() must return stage(...) as the root."
     )
 
 

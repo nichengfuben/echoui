@@ -1,4 +1,4 @@
-"""Compile Python click/key handlers to client-side JS (PLAN §34: compile, don't interpret)."""
+"""Compile Python click/key handlers to client-side JS at build time."""
 
 from __future__ import annotations
 

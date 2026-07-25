@@ -1,4 +1,4 @@
-"""Async helpers for non-blocking UI work (PLAN §15)."""
+"""Async helpers for non-blocking UI work."""
 
 from __future__ import annotations
 

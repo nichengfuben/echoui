@@ -1,4 +1,4 @@
-"""Web Worker bridge for off-main-thread tasks (PLAN §15)."""
+"""Web Worker bridge for off-main-thread tasks."""
 
 from __future__ import annotations
 

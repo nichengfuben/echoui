@@ -1,4 +1,4 @@
-"""Sprite sensing helpers (PLAN §5.3)."""
+"""Sprite sensing helpers."""
 
 from __future__ import annotations
 

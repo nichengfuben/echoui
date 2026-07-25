@@ -1,4 +1,4 @@
-"""Benchmark reactive fine-grained updates (PLAN §3)."""
+"""Benchmark reactive fine-grained updates."""
 
 from __future__ import annotations
 

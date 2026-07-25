@@ -1,4 +1,4 @@
-"""Third-party plugin example (PLAN §28)."""
+"""Third-party plugin example."""
 
 from __future__ import annotations
 

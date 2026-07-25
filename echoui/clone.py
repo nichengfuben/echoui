@@ -43,7 +43,7 @@ def clone_list(items: List[Any]) -> List[Any]:
 
 
 class ClonePool:
-    """Object pool for high-frequency sprites (PLAN §17)."""
+    """Object pool for high-frequency sprites."""
 
     def __init__(self, cls: type, *, max_size: int = 100) -> None:
         self.cls = cls

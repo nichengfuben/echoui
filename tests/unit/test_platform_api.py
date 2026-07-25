@@ -1,4 +1,4 @@
-"""Platform API bridge tests (PLAN §20)."""
+"""Platform API bridge tests."""
 
 from __future__ import annotations
 

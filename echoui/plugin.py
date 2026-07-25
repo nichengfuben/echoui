@@ -1,4 +1,4 @@
-"""Plugin registration system (PLAN §28)."""
+"""Plugin registration system."""
 
 from __future__ import annotations
 

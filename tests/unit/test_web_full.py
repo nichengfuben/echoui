@@ -1,4 +1,4 @@
-"""Full PLAN alignment tests — DOM, frame local, GPU, advanced roles."""
+"""Full web compile tests — DOM, frame local, GPU, advanced roles."""
 
 from __future__ import annotations
 

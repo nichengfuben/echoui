@@ -1,4 +1,4 @@
-"""Deferred task scheduling (PLAN §15)."""
+"""Deferred task scheduling."""
 
 from __future__ import annotations
 

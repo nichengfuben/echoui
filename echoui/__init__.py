@@ -1,4 +1,4 @@
-"""EchoUI public API surface (PLAN §6 / §30)."""
+"""EchoUI public API surface."""
 
 from typing import Any
 
@@ -36,8 +36,8 @@ from echoui.style import css, keyframes_css, set_theme, style, theme
 
 __version__ = "1.0.0"
 
-# PLAN §6 extended roles — resolved via layout module
-_PLAN_ROLE_NAMES = (
+# Built-in role factories — resolved via layout module
+_BUILTIN_ROLE_NAMES = (
     "richtext",
     "markdown",
     "code",
@@ -139,7 +139,7 @@ __all__ = [
     "divider",
     "spacer",
     "__version__",
-    *_PLAN_ROLE_NAMES,
+    *_BUILTIN_ROLE_NAMES,
 ]
 
 
@@ -148,7 +148,7 @@ def stage(*children: Any, **props: Any) -> Any:
 
 
 def __getattr__(name: str) -> Any:
-    if name in _PLAN_ROLE_NAMES:
+    if name in _BUILTIN_ROLE_NAMES:
         from echoui import layout as layout_mod
 
         return getattr(layout_mod, name)

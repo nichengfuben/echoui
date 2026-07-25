@@ -1,4 +1,4 @@
-"""Time and frame clock helpers (PLAN § time)."""
+"""Time and frame clock helpers."""
 
 from __future__ import annotations
 

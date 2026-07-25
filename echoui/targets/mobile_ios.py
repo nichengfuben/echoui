@@ -1,4 +1,4 @@
-"""iOS mobile target template (PLAN §26; macOS CI build)."""
+"""iOS mobile target template (macOS CI build)."""
 
 from __future__ import annotations
 

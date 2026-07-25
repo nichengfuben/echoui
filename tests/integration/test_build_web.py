@@ -36,4 +36,4 @@ def test_build_web_runtime_size(tmp_path):
     out = tmp_path / "dist"
     build_target(app, target="web", out_dir=str(out))
     runtime = (out / "runtime.js").read_text(encoding="utf-8")
-    assert len(runtime) < 12288  # core + storage + webgpu + widgets (PLAN §12/§18/§22)
+    assert len(runtime) < 12288  # core + storage + webgpu + widgets bundle

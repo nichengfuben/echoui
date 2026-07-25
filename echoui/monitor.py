@@ -1,4 +1,4 @@
-"""Runtime performance monitor (PLAN § monitor)."""
+"""Runtime performance monitor."""
 
 from __future__ import annotations
 

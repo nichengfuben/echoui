@@ -1,4 +1,4 @@
-"""WebAssembly module loading for web target (PLAN §15)."""
+"""WebAssembly module loading for web target."""
 
 from __future__ import annotations
 

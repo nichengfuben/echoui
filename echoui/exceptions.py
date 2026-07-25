@@ -10,8 +10,8 @@ class UnsupportedCapability(EchoUIError):
 
 
 class SSSError(EchoUIError):
-    """Raised when Screen/Stage/Sprite tree violates PLAN SSS rules."""
+    """Raised when Screen/Stage/Sprite tree violates SSS rules."""
 
 
 class CompileError(EchoUIError):
-    """Raised when a handler cannot compile to local client JS (PLAN §34)."""
+    """Raised when a handler cannot compile to local client JS."""

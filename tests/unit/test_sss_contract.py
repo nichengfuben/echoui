@@ -1,4 +1,4 @@
-"""PLAN §1 / §34 SSS contract tests."""
+"""SSS contract tests."""
 
 from __future__ import annotations
 

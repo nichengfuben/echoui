@@ -1,15 +1,15 @@
-"""PLAN.md export surface tests."""
+"""Public export surface tests."""
 
 import echoui
 from echoui.plugin import api_binding, compiler_pass, role, target
 
 
-def test_plan_core_exports():
+def test_core_exports():
     for name in ("App", "Screen", "Stage", "Sprite", "Store", "native_component"):
         assert hasattr(echoui, name)
 
 
-def test_plan_role_exports():
+def test_role_exports():
     for name in ("chart", "map", "tabs", "calendar", "textarea", "switch"):
         assert hasattr(echoui, name)
 

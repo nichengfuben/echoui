@@ -1,4 +1,4 @@
-"""EchoUI command-line interface (PLAN §31)."""
+"""EchoUI command-line interface."""
 
 from __future__ import annotations
 

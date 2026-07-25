@@ -1,4 +1,4 @@
-"""PLAN fulfillment — runtime bundle, production widgets, storage, WebGPU."""
+"""Runtime bundle, production widgets, storage, WebGPU."""
 
 from __future__ import annotations
 

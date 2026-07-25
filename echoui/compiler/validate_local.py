@@ -1,4 +1,4 @@
-"""Verify every UI handler compiles to local JS (PLAN §34: compile, don't interpret)."""
+"""Verify every UI handler compiles to local JS at build time."""
 
 from __future__ import annotations
 

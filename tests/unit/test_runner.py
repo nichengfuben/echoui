@@ -40,7 +40,7 @@ def test_runner_keymap_and_frames():
 
 
 def test_runner_actions_compile_local():
-    """PLAN §34: jump/reset compile to local JS — no runtime Python round-trip."""
+    """jump/reset compile to local JS — no runtime Python round-trip."""
     mod = _load_runner()
     Store.reset_registry()
     mod.RunnerStore()
@@ -83,7 +83,7 @@ def test_runner_viewport_fill(tmp_path):
 
 
 def test_runner_sss_tree():
-    """PLAN §1: Screen → Stage → Sprite; no flow col wrapping stage."""
+    """Screen → Stage → Sprite; no flow col wrapping stage."""
     mod = _load_runner()
     Store.reset_registry()
     mod.RunnerStore()

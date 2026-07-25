@@ -1,4 +1,4 @@
-"""Screen view surface type (PLAN §4.2 — page / window / route)."""
+"""Screen view surface type (page / window / route)."""
 
 from __future__ import annotations
 

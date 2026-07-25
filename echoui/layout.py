@@ -112,8 +112,8 @@ def _factory(role: str) -> Callable[..., IRNode]:
     return maker
 
 
-# PLAN §6 built-in roles (each maps to a Sprite role; backends lower per §26 matrix)
-_PLAN_ROLES = (
+# Built-in roles (each maps to a Sprite role; backends lower per target matrix)
+_BUILTIN_ROLES = (
     "richtext",
     "markdown",
     "code",
@@ -182,9 +182,9 @@ _PLAN_ROLES = (
     "sprite",
 )
 
-for _role_name in _PLAN_ROLES:
+for _role_name in _BUILTIN_ROLES:
     globals()[_role_name] = _factory(_role_name)
 
-# Aliases aligned with PLAN §6 naming (after factories exist)
+# Aliases for common role naming (after factories exist)
 input = input_field
 audio = globals()["audio_player"]
