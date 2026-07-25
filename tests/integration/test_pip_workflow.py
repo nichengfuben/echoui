@@ -4,15 +4,22 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
+
+
+def _project_version(repo: Path) -> str:
+    data = tomllib.loads((repo / "pyproject.toml").read_text(encoding="utf-8"))
+    return str(data["project"]["version"])
 
 
 def test_pip_install_wheel_then_echoui_cli(tmp_path):
     repo = Path(__file__).resolve().parents[2]
-    wheel = next(repo.glob("dist/echoui-1.0.0-py3-none-any.whl"), None)
+    version = _project_version(repo)
+    wheel = next(repo.glob(f"dist/echoui-{version}-py3-none-any.whl"), None)
     if wheel is None:
         subprocess.run([sys.executable, "-m", "build"], cwd=repo, check=True)
-        wheel = next(repo.glob("dist/echoui-1.0.0-py3-none-any.whl"))
+        wheel = next(repo.glob(f"dist/echoui-{version}-py3-none-any.whl"))
 
     venv = tmp_path / "venv"
     subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
@@ -27,7 +34,7 @@ def test_pip_install_wheel_then_echoui_cli(tmp_path):
         text=True,
         check=True,
     )
-    assert "1.0.0" in ver.stdout
+    assert version in ver.stdout
 
     app_dir = tmp_path / "demo-app"
     subprocess.run([str(py), "-m", "echoui", "new", str(app_dir)], check=True)

@@ -1,6 +1,6 @@
 [project]
 name = "echoui"
-version = "1.0.0"
+version = "1.0.1"
 description = "Universal Python-first UI framework — one Screen-Stage-Sprite paradigm compiles to Web, desktop, mobile, TUI, and GUI, with a universal escape layer guaranteeing capability parity with any framework."
 authors = [{ name = "nichengfuben", email = "nichengfuben@outlook.com" }]
 license = { text = "MIT" }
@@ -21,7 +21,7 @@ mobile = []
 tui = ["rich>=13.7.1", "textual>=0.58.0"]
 gui = ["PySide6>=6.7.0"]
 data = ["pyarrow>=15.0.2"]
-physics = ["box2d-py>=2.3.10"]
+physics = ["pymunk>=7.0.0"]
 dev = [
     "pytest>=8.1.1",
     "pytest-asyncio>=0.23.6",

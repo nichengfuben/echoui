@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — physics extra 兼容 Python 3.14 (2026-07-25)
+
+- **`physics` extra**：`box2d-py` 替换为 `pymunk>=7.0.0`（PyPI 有 3.14 wheel，持续维护）
+- `pip install echoui[all]` 在 Python 3.14 上可完整安装
+- 内置 AABB 物理（`echoui.physics.World`）不变，不依赖可选 extra
+
 ## 1.0.0 — 终态兑现 (2026-07-25)
 
 - **Web 完全兑现**：Chart.js / MapLibre 生产级、OPFS storage、WebGPU、SSR resume 水合
