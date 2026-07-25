@@ -27,8 +27,10 @@ jobs:
         run: |
           python - <<'PY'
           import importlib.util
+          import sys
           from pathlib import Path
           root = Path("examples/06_runner")
+          sys.path.insert(0, str(root.resolve()))
           spec = importlib.util.spec_from_file_location("runner", root / "main.py")
           mod = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(mod)
