@@ -2,18 +2,15 @@
 
 from echoui import Store
 from echoui.compiler.analyzer import analyze
-from echoui.compiler.client_cfg import build_client_cfg
 from echoui.compiler.emit_free_gpu import collect_free_gpu
-from echoui.compiler.lower import lower_web
-from echoui.compiler.optimizer import optimize
 from echoui.compiler.parser import parse_app
 from echoui.compiler.ui_collect import analyze_ui
 
 
 def test_free_gpu_skips_images():
-    from pathlib import Path
     import importlib.util
     import sys
+    from pathlib import Path
 
     root = Path(__file__).resolve().parents[2] / "examples" / "06_runner"
     sys.path.insert(0, str(root))

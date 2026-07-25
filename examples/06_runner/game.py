@@ -31,30 +31,36 @@ class RunnerStore(Store):
     obs3_x: float = -200.0
     bg_url: str = ""
     player_url: str = ""
-    player_costumes: list[str] = []
+    costume0: str = ""
+    costume1: str = ""
+    costume_count: int = 0
     player_costume_i: int = 0
 
 
 def save_player_costume() -> None:
     s = RunnerStore()
-    url = s.player_url
-    if not url:
+    if not s.player_url:
         return
-    costumes = list(s.player_costumes)
-    if url not in costumes:
-        costumes.append(url)
-        s.player_costumes = costumes
-    s.player_costume_i = costumes.index(url)
+    if s.costume_count == 0:
+        s.costume0 = s.player_url
+        s.costume_count = 1
+        s.player_costume_i = 0
+        return
+    s.costume1 = s.player_url
+    s.costume_count = 2
+    s.player_costume_i = 1
 
 
 def cycle_player_costume() -> None:
     s = RunnerStore()
-    costumes = list(s.player_costumes)
-    if len(costumes) < 2:
+    if s.costume_count < 2:
         return
-    i = (int(s.player_costume_i) + 1) % len(costumes)
-    s.player_costume_i = i
-    s.player_url = costumes[i]
+    if s.player_costume_i == 0:
+        s.player_costume_i = 1
+        s.player_url = s.costume1
+        return
+    s.player_costume_i = 0
+    s.player_url = s.costume0
 
 
 def _obs_fields() -> list[str]:

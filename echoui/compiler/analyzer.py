@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Set
 from echoui.compiler.emit_actions import compile_actions
 from echoui.compiler.emit_frame import compile_frame_script
 from echoui.compiler.emit_free_gpu import collect_free_gpu
-from echoui.compiler.ui_collect import analyze_ui
 from echoui.compiler.sss import normalize_screen_tree
+from echoui.compiler.ui_collect import analyze_ui
 from echoui.compiler.validate_local import validate_local_compile
 from echoui.events import collect_frame_handlers, collect_key_handlers, collect_screen_handlers
 

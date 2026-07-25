@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.7 — Web compile-local 终态 (2026-07-25)
+
+- **终态范围**：compile-local Web 栈闭环（§34）；127 pytest + ruff + mypy + achecker 全绿
+- **跑酷**：compile-local handler（无 lambda）；双槽位造型保存/切换（C 键）
+- **质量**：ruff/mypy 清理；TUI ProgressBar API 对齐；ui_collect 返回类型修正
+- **测试**：conftest 禁用 localhost 代理，修复集成测 502 flake
+- **文档**：PROGRESS / 08 矩阵更新为诚实 Web 终态
+
+## 1.2.6 — dev watch 重建循环修复 (2026-07-25)
+
+- `echoui dev` watch 忽略 `dist/`、`build/`、`.echoui/`，避免 compile→write→rebuild 死循环
+
+## 1.2.5 — file_input 上传接线修复 (2026-07-25)
+
+- 专用 `file_input` 不再被 `_BUILTIN_ROLES` 工厂覆盖；`file_inputs` 正确写入 client cfg
+- 跑酷示例：保存/切换造型（双槽位 compile-local）
+
 ## 1.2.4 — runtime 打包修复（替换损坏的 1.2.3 wheel）(2026-07-25)
 
 - **1.2.3 PyPI wheel 损坏**（仅含 JS、无 Python 模块），本版为完整 wheel

@@ -22,6 +22,11 @@ from game import (
 store = RunnerStore()
 
 
+def click_jump() -> None:
+    jump()
+    audio.play("assets/jump.mp3")
+
+
 class Runner(Screen):
     layout = "free"
     background = "#1a1a2e"
@@ -58,10 +63,6 @@ class Runner(Screen):
             f"Score: {store.score}"
             + (" — GAME OVER (R)" if store.game_over else " — Space jump, C 切换造型")
         )
-
-        def click_jump() -> None:
-            jump()
-            audio.play("assets/jump.mp3")
 
         return stage(
             box(width=640, height=360, x=0, y=0, background="#87ceeb"),
@@ -103,9 +104,9 @@ class Runner(Screen):
                 width=260,
             ),
             button("Jump", x=16, y=320, on_click=click_jump),
-            button("Reset", x=96, y=320, on_click=lambda: reset_game()),
-            button("保存造型", x=176, y=320, on_click=lambda: save_player_costume()),
-            button("切换造型", x=276, y=320, on_click=lambda: cycle_player_costume()),
+            button("Reset", x=96, y=320, on_click=reset_game),
+            button("保存造型", x=176, y=320, on_click=save_player_costume),
+            button("切换造型", x=276, y=320, on_click=cycle_player_costume),
             width=640,
             height=360,
             layout="free",

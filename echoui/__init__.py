@@ -11,12 +11,12 @@ from echoui.layout import (
     center,
     col,
     divider,
+    file_input,
     grid,
     heading,
     image,
     input,
     input_field,
-    file_input,
     link,
     paragraph,
     row,
@@ -35,7 +35,7 @@ from echoui.stage import stage as stage_fn
 from echoui.state import Store
 from echoui.style import css, keyframes_css, set_theme, style, theme
 
-__version__ = "1.2.6"
+__version__ = "1.2.7"
 
 # Built-in role factories — resolved via layout module
 _BUILTIN_ROLE_NAMES = (

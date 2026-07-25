@@ -71,7 +71,7 @@ def compose_ir(node: dict[str, Any]) -> Iterator[Any]:
         yield Checkbox(str(props.get("label", props.get("text", "Option"))))
         return
     if role == "progress":
-        yield ProgressBar(total=int(props.get("max", 100)), progress=int(props.get("value", 0)))
+        yield ProgressBar(total=int(props.get("max", 100)))
         return
     if props.get("direction") == "row" or role == "stage":
         with Horizontal():

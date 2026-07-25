@@ -8,6 +8,29 @@ import sys
 import tomllib
 from pathlib import Path
 
+def _run(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        cmd,
+        check=True,
+        env=env,
+        cwd=str(cwd) if cwd else None,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def _clean_env(base: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(base or os.environ)
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+        env.pop(key, None)
+    env["NO_PROXY"] = "127.0.0.1,localhost"
+    env["no_proxy"] = "127.0.0.1,localhost"
+    return env
+
 
 def _project_version(repo: Path) -> str:
     data = tomllib.loads((repo / "pyproject.toml").read_text(encoding="utf-8"))
@@ -17,8 +40,18 @@ def _project_version(repo: Path) -> str:
 def test_pip_install_wheel_then_echoui_cli(tmp_path):
     repo = Path(__file__).resolve().parents[2]
     version = _project_version(repo)
-    subprocess.run([sys.executable, "-m", "build"], cwd=repo, check=True)
-    wheel = next(repo.glob(f"dist/echoui-{version}-py3-none-any.whl"))
+    wheel = repo / "dist" / f"echoui-{version}-py3-none-any.whl"
+    if not wheel.is_file():
+        subprocess.run(
+            [sys.executable, "-m", "build"],
+            cwd=repo,
+            check=True,
+            env=_clean_env(),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    assert wheel.is_file(), f"missing wheel: {wheel}"
 
     site = tmp_path / "site"
     subprocess.run(
@@ -34,33 +67,26 @@ def test_pip_install_wheel_then_echoui_cli(tmp_path):
             "--no-deps",
         ],
         check=True,
+        env=_clean_env(),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
-    env = os.environ.copy()
+    env = _clean_env()
     env["PYTHONPATH"] = str(site) + os.pathsep + env.get("PYTHONPATH", "")
 
-    ver = subprocess.run(
-        [sys.executable, "-m", "echoui", "version"],
-        capture_output=True,
-        text=True,
-        check=True,
-        env=env,
-    )
+    ver = _run([sys.executable, "-m", "echoui", "version"], env=env)
     assert version in ver.stdout
 
     app_dir = tmp_path / "demo-app"
-    subprocess.run(
-        [sys.executable, "-m", "echoui", "new", str(app_dir)],
-        check=True,
-        env=env,
-    )
+    _run([sys.executable, "-m", "echoui", "new", str(app_dir)], env=env)
     assert (app_dir / "main.py").exists()
     assert (app_dir / "pyproject.toml").exists()
 
-    subprocess.run(
+    _run(
         [sys.executable, "-m", "echoui", "build", "--target", "web", "main.py"],
-        cwd=app_dir,
-        check=True,
         env=env,
+        cwd=app_dir,
     )
     assert (app_dir / "dist" / "web" / "index.html").exists()
     assert (app_dir / "dist" / "web" / "runtime.js").exists()

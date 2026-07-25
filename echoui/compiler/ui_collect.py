@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple
 from echoui.compiler.reactive_graph import analyze_bindings, trace_binding_deps
 
 
-def analyze_ui(root: Any) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+def analyze_ui(root: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]], List[Dict[str, Any]]]:
     bindings, signals = analyze_bindings(root)
     file_inputs: List[Dict[str, Any]] = []
     overlays: List[Dict[str, Any]] = []

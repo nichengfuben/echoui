@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import html
-import json
 from typing import Any, Dict, Optional
 
 _INPUT_TYPES: Dict[str, str] = {
@@ -38,7 +37,6 @@ def render_role_html(
     role = node.get("role", "box")
     props = node.get("props", {})
     tag = node.get("tag", "div")
-    nid = node.get("id", "")
 
     if role in _INPUT_TYPES or tag == "input":
         return _render_input(node, attrs, cls, style_attr)

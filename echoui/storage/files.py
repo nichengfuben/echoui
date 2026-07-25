@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 
 class Files:
