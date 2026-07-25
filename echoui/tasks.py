@@ -1,4 +1,4 @@
-"""Deferred task scheduling (PLAN § tasks)."""
+"""Deferred task scheduling (PLAN §15)."""
 
 from __future__ import annotations
 
@@ -18,3 +18,18 @@ class TaskQueue:
         while self._pending:
             self._pending.pop(0)()
         return count
+
+
+_queue = TaskQueue()
+
+
+def background(fn: Callable[[], None]) -> None:
+    _queue.defer(fn)
+
+
+def schedule(fn: Callable[[], None], *, cron: str = "") -> None:
+    _queue.defer(fn)
+
+
+def flush() -> int:
+    return _queue.flush()

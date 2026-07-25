@@ -101,3 +101,89 @@ def input_field(name: str, label: Optional[str] = None, **props: Any) -> IRNode:
 
 def link(href: str, label: str, **props: Any) -> IRNode:
     return _role("link", href=href, text=label, **props)
+
+
+def _factory(role: str) -> Callable[..., IRNode]:
+    def maker(*children: Any, **props: Any) -> IRNode:
+        return _role(role, *children, **props)
+
+    maker.__name__ = role
+    return maker
+
+
+# PLAN §6 built-in roles (each maps to a Sprite role; backends lower per §26 matrix)
+_PLAN_ROLES = (
+    "richtext",
+    "markdown",
+    "code",
+    "icon_button",
+    "icon",
+    "svg",
+    "textarea",
+    "password",
+    "number_input",
+    "checkbox",
+    "radio",
+    "radio_group",
+    "select",
+    "multiselect",
+    "combobox",
+    "slider",
+    "range_slider",
+    "switch",
+    "color_picker",
+    "date_picker",
+    "time_picker",
+    "datetime_picker",
+    "file_input",
+    "card",
+    "video",
+    "audio_player",
+    "canvas",
+    "viewport3d",
+    "embed",
+    "iframe",
+    "list_view",
+    "table",
+    "tree",
+    "grid_view",
+    "tabs",
+    "accordion",
+    "stepper",
+    "breadcrumb",
+    "pagination",
+    "badge",
+    "avatar",
+    "chip",
+    "tooltip",
+    "popover",
+    "menu",
+    "menubar",
+    "context_menu",
+    "progress",
+    "spinner",
+    "skeleton",
+    "rating",
+    "calendar",
+    "gantt",
+    "kanban",
+    "carousel",
+    "splitter",
+    "resizable",
+    "sortable",
+    "chart",
+    "map",
+    "qr",
+    "barcode",
+    "collection",
+    "window",
+    "tray",
+    "sprite",
+)
+
+for _role_name in _PLAN_ROLES:
+    globals()[_role_name] = _factory(_role_name)
+
+# Aliases aligned with PLAN §6 naming (after factories exist)
+input = input_field
+audio = globals()["audio_player"]

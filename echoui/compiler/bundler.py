@@ -52,6 +52,16 @@ def build_target(app: Any, *, target: str = "web", out_dir: str = "dist/web", **
 
         return build_gui(app, out_dir=out_dir)
 
+    if target == "android":
+        from echoui.targets.mobile_android import build_android
+
+        return build_android(app, out_dir=out_dir)
+
+    if target == "ios":
+        from echoui.targets.mobile_ios import build_ios
+
+        return build_ios(app, out_dir=out_dir)
+
     raise ValueError(f"Unknown target: {target}")
 
 

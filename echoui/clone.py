@@ -40,3 +40,32 @@ def clone_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
 def clone_list(items: List[Any]) -> List[Any]:
     return [clone_dict(i) if isinstance(i, dict) else i for i in items]
+
+
+class ClonePool:
+    """Object pool for high-frequency sprites (PLAN §17)."""
+
+    def __init__(self, cls: type, *, max_size: int = 100) -> None:
+        self.cls = cls
+        self.max_size = max_size
+        self._free: list[Any] = []
+        self._active: list[Any] = []
+
+    def acquire(self, **kwargs: Any) -> Any:
+        obj = self._free.pop() if self._free else self.cls()
+        for k, v in kwargs.items():
+            setattr(obj, k, v)
+        if hasattr(obj, "on_clone"):
+            obj.on_clone()
+        self._active.append(obj)
+        return obj
+
+    def release(self, obj: Any) -> None:
+        if obj in self._active:
+            self._active.remove(obj)
+        if len(self._free) < self.max_size:
+            self._free.append(obj)
+
+
+def clone_pool(cls: type, *, max: int = 100) -> ClonePool:
+    return ClonePool(cls, max_size=max)

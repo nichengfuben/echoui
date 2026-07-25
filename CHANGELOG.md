@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.2
+
+- Align public API with PLAN.md §6: export 50+ built-in role factories from `echoui`
+- PLAN §28 plugin decorators: `Plugin`, `compiler_pass`, `role`, `target`, `api_binding`
+- PLAN §31 CLI: `preview`, `export`, `analyze`, `test`, `doctor`, `add`; build targets `android`/`ios`
+- PLAN §29: `echoui.testing.a11y_audit` with `.passes`
+- `docs/api/plan-map.md` — PLAN §0–§35 → module index
+- PLAN §15：`async_`/`workers`/`wasm`/`tasks` API 落点
+- PLAN §17：`clone_pool` 对象池
+- `docs/api/plan-alignment.md` — PLAN 各节对齐摘要
+
 ## 0.9.1
 
 - Fix TUI build JSON serialization for reactive lambdas

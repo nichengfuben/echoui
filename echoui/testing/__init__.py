@@ -82,6 +82,23 @@ def snapshot(mounted: MountedApp) -> str:
     return mounted.snapshot()
 
 
+@dataclass
+class A11yReport:
+    issues: list[str]
+
+    @property
+    def passes(self) -> bool:
+        return not self.issues
+
+
+def a11y_audit(mounted: MountedApp) -> A11yReport:
+    """Rule-based a11y audit (PLAN §29; not WCAG certification)."""
+    from echoui.a11y import a11y_audit as _audit
+
+    parsed = parse_app(mounted.app)
+    return A11yReport(_audit(parsed["root"]))
+
+
 def _to_test_node(node: IRNode) -> TestNode:
     props = dict(node.props)
     text = ""

@@ -48,6 +48,19 @@ def theme(name: Optional[str] = None) -> Any:
     return _theme.get(name, "")
 
 
+def css(rules: str) -> str:
+    """Global CSS escape (PLAN §8)."""
+    return rules
+
+
+def keyframes_css(name: str, frames: Dict[str, Dict[str, Any]]) -> str:
+    parts = []
+    for pct, rules in frames.items():
+        body = ";".join(f"{k.replace('_', '-')}: {v}" for k, v in rules.items())
+        parts.append(f"{pct} {{ {body}; }}")
+    return f"@keyframes {name} {{ {' '.join(parts)} }}"
+
+
 class _ThemeProxy:
     def __getattr__(self, item: str) -> Any:
         return _theme.get(item, "")

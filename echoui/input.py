@@ -41,6 +41,47 @@ class Mouse:
 keyboard = Keyboard()
 mouse = Mouse()
 
+
+@dataclass
+class TouchPoint:
+    x: float = 0
+    y: float = 0
+
+
+@dataclass
+class Touch:
+    points: list[TouchPoint] = field(default_factory=list)
+
+
+@dataclass
+class Gamepad:
+    index: int = 0
+
+    def button(self, name: str) -> bool:
+        return False
+
+
+@dataclass
+class Gyroscope:
+    x: float = 0
+    y: float = 0
+    z: float = 0
+
+
+@dataclass
+class Pen:
+    pressure: float = 0
+    tilt: float = 0
+
+
+touch = Touch()
+gyroscope = Gyroscope()
+pen = Pen()
+
+
+def gamepad(index: int = 0) -> Gamepad:
+    return Gamepad(index=index)
+
 _shortcuts: Dict[str, Callable[..., Any]] = {}
 
 
