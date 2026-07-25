@@ -1,13 +1,13 @@
 # EchoUI Progress
 
 > **审计规则**：仅 `[x]` 表示本机命令验证通过。  
-> **终态声明（v1.2.12）**：Web A 类 + v0.9 生态（collab/platform/a11y/print/devtools）+ 152 pytest。
+> **终态声明（v1.2.12）**：Web A 类 + v0.9 生态 + CI/iOS/PyPI 全闭环 · 152 pytest。
 
 ## 当前阶段
 
 **v1.2.12 — v0.9 生态终态**（2026-07-25）
 
-PyPI **1.2.12** · GitHub **v1.2.12** · 152 pytest
+PyPI **1.2.12** · GitHub **v1.2.12** · CI ✅ · iOS bundle artifact ✅ · 152 pytest
 
 ---
 
@@ -22,7 +22,8 @@ PyPI **1.2.12** · GitHub **v1.2.12** · 152 pytest
 | `python achecker.py` | [x] | 全绿 |
 | `python -m build` + `twine check` | [x] | PASSED |
 | 九示例 web+static build | [x] | test_build_all_examples |
-| tag → PyPI CI | [x] | publish.yml v1.2.12 |
+| tag → PyPI CI | [x] | publish.yml + CI main 全绿 |
+| iOS CI web bundle | [x] | ios-build.yml artifact |
 | TUI IR 渲染 | [x] | compose_ir + test_build_tui |
 | Desktop build + `.exe` | [x] | test_build_desktop |
 | Android Gradle + APK | [x] | test_build_android |
@@ -70,6 +71,7 @@ PyPI **1.2.12** · GitHub **v1.2.12** · 152 pytest
 ## 审计日志
 
 ```
+2026-07-25 v1.2.12 CI/iOS 修复：dev watch、twine dist、ios_bundle_smoke
 2026-07-25 v1.2.12 v0.9 生态：collab/platform/print_view/devtools + optimizer 修复
 2026-07-25 v1.2.11 Sprite 全量运动/感知 + persist + responsive
 2026-07-25 v1.2.10 造型 API + Store 信号 + 08 矩阵 v4 对齐
