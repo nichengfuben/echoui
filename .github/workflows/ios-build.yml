@@ -24,21 +24,7 @@ jobs:
           pytest -q
           python achecker.py
       - name: Build runner web bundle for iOS shell
-        run: |
-          python - <<'PY'
-          import importlib.util
-          import sys
-          from pathlib import Path
-          root = Path("examples/06_runner")
-          sys.path.insert(0, str(root.resolve()))
-          spec = importlib.util.spec_from_file_location("runner", root / "main.py")
-          mod = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(mod)
-          out = Path("dist/ios/runner")
-          mod.app.compile(target="ios", out_dir=str(out))
-          assert (out / "web" / "index.html").exists()
-          print("iOS web bundle ready for WKWebView shell")
-          PY
+        run: python scripts/ios_bundle_smoke.py
       - name: Package iOS web bundle artifact
         run: |
           mkdir -p dist/ios
