@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Dict, Type, TypeVar
+from typing import Any, ClassVar, Dict, TypeVar
 
 from echoui.reactive import Signal, batch
 
