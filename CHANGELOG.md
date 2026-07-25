@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3 — runtime/web 打包修复 (2026-07-25)
+
+- **wheel/sdist**：`hatch` `force-include` 强制打入 `echoui/runtime/web/*.js`
+- **`load_web_runtime`**：`importlib.resources` + 源树双路径，缺失时给出 reinstall 提示
+- 修复 PyPI 安装后 `echoui dev` Rebuild 找不到 `core.js`
+
 ## 1.2.2 — 跑酷 GPU 颜色修复 (2026-07-25)
 
 - **free-mode GPU**：`image`/控件不再批渲染为 `#888` 灰块，仅 `box`+`background` 进 canvas
