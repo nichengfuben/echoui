@@ -7,18 +7,51 @@ from typing import Any, Callable, Dict, Optional, Union
 from echoui.sprite import IRNode, normalize_children
 
 
-def row(*children: Any, gap: int = 8, align: str = "stretch", justify: str = "start", **extra: Any) -> IRNode:
-    props = {"gap": gap, "align": align, "justify": justify, "direction": "row", **extra}
+def row(
+    *children: Any,
+    gap: int = 8,
+    align: str = "stretch",
+    justify: str = "start",
+    wrap: bool = False,
+    responsive: dict[str, dict[str, Any]] | None = None,
+    **extra: Any,
+) -> IRNode:
+    props = {
+        "gap": gap,
+        "align": align,
+        "justify": justify,
+        "direction": "row",
+        "wrap": wrap,
+        **extra,
+    }
+    if responsive:
+        props["responsive"] = responsive
     return IRNode("box", props=props, children=normalize_children(list(children)))
 
 
-def col(*children: Any, gap: int = 8, align: str = "stretch", **extra: Any) -> IRNode:
+def col(
+    *children: Any,
+    gap: int = 8,
+    align: str = "stretch",
+    responsive: dict[str, dict[str, Any]] | None = None,
+    **extra: Any,
+) -> IRNode:
     props = {"gap": gap, "align": align, "direction": "col", **extra}
+    if responsive:
+        props["responsive"] = responsive
     return IRNode("box", props=props, children=normalize_children(list(children)))
 
 
-def grid(*children: Any, cols: int = 2, gap: int = 8, **extra: Any) -> IRNode:
+def grid(
+    *children: Any,
+    cols: int = 2,
+    gap: int = 8,
+    responsive: dict[str, dict[str, Any]] | None = None,
+    **extra: Any,
+) -> IRNode:
     props = {"cols": cols, "gap": gap, "display": "grid", **extra}
+    if responsive:
+        props["responsive"] = responsive
     return IRNode("box", props=props, children=normalize_children(list(children)))
 
 

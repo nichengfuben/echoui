@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.11 — Sprite 全量运动/感知 + 持久化 + 响应式 (2026-07-25)
+
+- **Sprite**：`point_toward` / `bounce_on_edge` / `flip_*` / `orbit` / `say` / `split_to` / `image()` 等
+- **MotionChain**：`when().otherwise()` 条件分支修复
+- **Store 持久化**：`persist_mixin("local")` + `_load_persisted()`
+- **布局**：`row/col/grid(responsive={...})` → emit 媒体查询 CSS
+- **style**：hover/dark/media 嵌套规则编译
+- **files.pick**：桌面 tkinter 原生选文件 → data URL
+
 ## 1.2.10 — 造型 API (2026-07-25)
 
 - **`costume()` / `bind_costumes()`**：命名造型 + `switch["name"]` / `next_costume` / `save_costume`（compile-local）

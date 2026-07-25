@@ -11,8 +11,29 @@ class Files:
     """Cross-target file helpers; web runtime handles pick/save in browser."""
 
     async def pick(self, *, accept: str = "*/*", multiple: bool = False) -> Union[str, list[str], None]:
-        """Return data URL(s) on web after user picks file(s)."""
-        return None
+        """Return data URL(s) after user picks file(s). Native uses tkinter when available."""
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            ext = accept.split("/")[-1] if "/" in accept else "*"
+            filetypes = [(accept, f"*.{ext}" if ext != "*" else "*.*")]
+            if multiple:
+                paths = filedialog.askopenfilenames(filetypes=filetypes)
+                root.destroy()
+                if not paths:
+                    return None
+                return [self.read_data_url(p) for p in paths]
+            path = filedialog.askopenfilename(filetypes=filetypes)
+            root.destroy()
+            if not path:
+                return None
+            return self.read_data_url(path)
+        except Exception:
+            return None
 
     async def save(self, name: str, data: Union[str, bytes], *, mime: str = "application/octet-stream") -> None:
         if isinstance(data, str):

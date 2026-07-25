@@ -125,6 +125,7 @@ def json_set(store: MemoryBackend, key: str, value: Any) -> None:
 
 
 from echoui.storage.files import Files, files  # noqa: E402
+from echoui.storage.persist import persist_mixin  # noqa: E402
 
 __all__ = [
     "local",
@@ -140,4 +141,5 @@ __all__ = [
     "json_set",
     "Files",
     "files",
+    "persist_mixin",
 ]

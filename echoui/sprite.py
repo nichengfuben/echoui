@@ -220,6 +220,102 @@ class Sprite:
         self.current_costume = keys[idx]
         return self
 
+    def point_toward(self, target: Any = "mouse") -> "Sprite":
+        import math
+
+        if hasattr(target, "x") and hasattr(target, "y"):
+            dx = float(target.x) - self.x
+            dy = float(target.y) - self.y
+        elif isinstance(target, (int, float)):
+            self.rotation = float(target)
+            return self
+        elif target == "mouse":
+            from echoui.input import mouse
+
+            dx = mouse.x - self.x
+            dy = mouse.y - self.y
+        else:
+            return self
+        self.rotation = math.degrees(math.atan2(dy, dx))
+        return self
+
+    def bounce_on_edge(self, stage_w: float = 640, stage_h: float = 360) -> "Sprite":
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        if self.x + self.width > stage_w:
+            self.x = stage_w - self.width
+        if self.y + self.height > stage_h:
+            self.y = stage_h - self.height
+        return self
+
+    def flip_horizontal(self) -> "Sprite":
+        self._effects["flip_h"] = 1.0
+        return self
+
+    def flip_vertical(self) -> "Sprite":
+        self._effects["flip_v"] = 1.0
+        return self
+
+    def change_layer(self, delta: int) -> "Sprite":
+        self.layer += delta
+        return self
+
+    def say(self, message: str, *, seconds: float = 2.0) -> "Sprite":
+        self._speech = message  # type: ignore[attr-defined]
+        self._speech_seconds = seconds  # type: ignore[attr-defined]
+        return self
+
+    def orbit(self, center: Any, degrees: float) -> "Sprite":
+        import math
+
+        if hasattr(center, "x") and hasattr(center, "y"):
+            cx, cy = float(center.x), float(center.y)
+        elif isinstance(center, (tuple, list)) and len(center) >= 2:
+            cx, cy = float(center[0]), float(center[1])
+        else:
+            return self
+        dx = self.x - cx
+        dy = self.y - cy
+        dist = math.hypot(dx, dy) or 1.0
+        base = math.atan2(dy, dx)
+        new_a = base + math.radians(degrees)
+        self.x = cx + math.cos(new_a) * dist
+        self.y = cy + math.sin(new_a) * dist
+        return self
+
+    def touches_team(self, team: str, others: List["Sprite"]) -> bool:
+        return sensing.touches_team(self, team, others)
+
+    def touches_color(self, color: str, *, tolerance: int = 0) -> bool:
+        return sensing.touches_color(self, color, tolerance=tolerance)
+
+    def touches_edge(self, stage_w: float = 640, stage_h: float = 360) -> bool:
+        return sensing.touches_edge(self, stage_w, stage_h)
+
+    def touches_point(self, px: float, py: float) -> bool:
+        return sensing.touches_point(self, px, py)
+
+    def raycast(self, angle_deg: float, max_dist: float = 500) -> tuple[float, float]:
+        return sensing.raycast(self, angle_deg, max_dist)
+
+    def split_to(self, n: int) -> List["Sprite"]:
+        return [self.clone() for _ in range(max(0, n))]
+
+    def image(self, src: Any = None, **props: Any) -> IRNode:
+        from echoui.layout import image as image_fn
+
+        resolved = src if src is not None else self.costume_src
+        return image_fn(
+            resolved,
+            x=self.x,
+            y=self.y,
+            width=self.width,
+            height=self.height,
+            **props,
+        )
+
     def move_to_front(self) -> "Sprite":
         self.layer += 1
         return self

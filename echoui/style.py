@@ -18,16 +18,40 @@ def css_hash(rules: Dict[str, Any]) -> str:
 
 def rules_to_css(class_name: str, rules: Dict[str, Any]) -> str:
     parts = []
+    nested: list[str] = []
     for key, val in rules.items():
-        if key in ("hover", "active", "focus", "dark", "media", "container"):
+        if key == "hover":
+            nested.append(_rules_block(f".{class_name}:hover", val))
+            continue
+        if key == "active":
+            nested.append(_rules_block(f".{class_name}:active", val))
+            continue
+        if key == "focus":
+            nested.append(_rules_block(f".{class_name}:focus", val))
+            continue
+        if key == "dark":
+            nested.append(f"@media (prefers-color-scheme:dark){{.{class_name}{{{_decls(val)}}}}}")
+            continue
+        if key == "media" and isinstance(val, dict):
+            for query, sub in val.items():
+                nested.append(f"@media {query}{{.{class_name}{{{_decls(sub)}}}}}")
+            continue
+        if key == "container":
             continue
         prop = key.replace("_", "-")
         if isinstance(val, (list, tuple)):
             val = " ".join(str(v) for v in val)
         parts.append(f"{prop}:{val}")
-    if not parts:
-        return ""
-    return f".{class_name}{{{';'.join(parts)};}}"
+    base = f".{class_name}{{{';'.join(parts)};}}" if parts else ""
+    return base + "".join(nested)
+
+
+def _decls(rules: Dict[str, Any]) -> str:
+    return ";".join(f"{k.replace('_', '-')}:{v}" for k, v in rules.items())
+
+
+def _rules_block(selector: str, rules: Dict[str, Any]) -> str:
+    return f"{selector}{{{_decls(rules)}}}"
 
 
 _theme: Dict[str, Any] = {

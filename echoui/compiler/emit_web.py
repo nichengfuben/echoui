@@ -60,18 +60,62 @@ def emit_web(lowered: Dict[str, Any], *, ssr_html: str | None = None) -> Dict[st
     cfg = json.dumps(build_client_cfg(lowered), ensure_ascii=False)
     runtime = load_web_runtime()
     title = html.escape(lowered.get("app", {}).get("title", "EchoUI"))
+    responsive_css = _responsive_css(lowered.get("nodes"))
     page = f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <link rel="manifest" href="manifest.webmanifest">
-<style>{_BASE_CSS}</style>
+<style>{_BASE_CSS}{responsive_css}</style>
 </head><body>
 <div id="app">{body}</div>
 <script>window.__ECHoui_CFG={cfg};</script>
 <script src="runtime.js"></script>
 </body></html>"""
     return {"index.html": page, "runtime.js": runtime}
+
+
+_BREAKPOINTS = {"sm": 640, "md": 768, "lg": 1024, "xl": 1280}
+
+
+def _responsive_css(nodes: Any) -> str:
+    rules: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, dict):
+            return
+        props = node.get("props", {})
+        resp = props.get("responsive")
+        nid = node.get("id")
+        if resp and nid:
+            for bp, delta in resp.items():
+                if not isinstance(delta, dict):
+                    continue
+                px = _BREAKPOINTS.get(str(bp), 640)
+                decl: list[str] = []
+                direction = delta.get("direction")
+                if direction == "col":
+                    decl.append("flex-direction:column")
+                elif direction == "row":
+                    decl.append("flex-direction:row")
+                cols = delta.get("cols")
+                if cols:
+                    decl.append(f"display:grid;grid-template-columns:repeat({cols},1fr)")
+                gap = delta.get("gap")
+                if gap is not None:
+                    decl.append(f"gap:{gap}px")
+                if decl:
+                    body = ";".join(decl)
+                    rules.append(f"@media (max-width:{px}px){{#{nid}{{{body};}}}}")
+        for child in node.get("children", []):
+            walk(child)
+
+    walk(nodes)
+    return "\n".join(rules)
 
 
 def _render_nodes(

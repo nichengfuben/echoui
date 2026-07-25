@@ -96,20 +96,33 @@ class MotionChain:
         self._steps = [step]
         return self
 
-    def when(self, condition: Callable[[], bool], then: Callable[[Any], None]) -> "MotionChain":
+    def when(self, condition: Callable[[], bool], then: Callable[[Any], None]) -> Any:
         sprite = self._sprite
+        else_fn: list[Callable[[Any], None] | None] = [None]
 
-        def step() -> None:
+        async def step() -> None:
             if condition():
                 then(sprite)
+            elif else_fn[0] is not None:
+                else_fn[0](sprite)
 
         self._steps.append(step)
-        return self
+
+        class Branch:
+            _owner: "MotionChain"
+
+            def otherwise(self, fn: Callable[[Any], None]) -> "MotionChain":
+                else_fn[0] = fn
+                return self._owner
+
+        branch = Branch()
+        branch._owner = self  # type: ignore[attr-defined]
+        return branch
 
     def otherwise(self, fn: Callable[[Any], None]) -> "MotionChain":
         sprite = self._sprite
 
-        def step() -> None:
+        async def step() -> None:
             fn(sprite)
 
         self._steps.append(step)
