@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.2.3 — runtime/web 打包修复 (2026-07-25)
+## 1.2.4 — runtime 打包修复（替换损坏的 1.2.3 wheel）(2026-07-25)
+
+- **1.2.3 PyPI wheel 损坏**（仅含 JS、无 Python 模块），本版为完整 wheel
+- `load_web_runtime` 使用 `importlib.resources`，安装后 `echoui dev` 可正常 Rebuild
+
+## 1.2.3 — runtime/web 打包修复 (2026-07-25) [YANK — 损坏 wheel]
 
 - **wheel/sdist**：`hatch` `force-include` 强制打入 `echoui/runtime/web/*.js`
 - **`load_web_runtime`**：`importlib.resources` + 源树双路径，缺失时给出 reinstall 提示
