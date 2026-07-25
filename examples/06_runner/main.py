@@ -7,7 +7,17 @@ from echoui.audio import audio
 from echoui.layout import box
 from echoui.stage import stage
 
-from game import GROUND_Y, MAX_OBS, PLAYER_X, RunnerStore, jump, reset_game, tick
+from game import (
+    GROUND_Y,
+    MAX_OBS,
+    PLAYER_X,
+    RunnerStore,
+    cycle_player_costume,
+    jump,
+    reset_game,
+    save_player_costume,
+    tick,
+)
 
 store = RunnerStore()
 
@@ -29,6 +39,10 @@ class Runner(Screen):
     def do_reset(self, event) -> None:
         reset_game()
 
+    @on("keydown", key="KeyC")
+    def do_cycle_costume(self, event) -> None:
+        cycle_player_costume()
+
     def build(self):
         obstacles = [
             box(
@@ -42,7 +56,7 @@ class Runner(Screen):
         ]
         score_text = lambda: (
             f"Score: {store.score}"
-            + (" — GAME OVER (R)" if store.game_over else " — Space jump")
+            + (" — GAME OVER (R)" if store.game_over else " — Space jump, C 切换造型")
         )
 
         def click_jump() -> None:
@@ -90,6 +104,8 @@ class Runner(Screen):
             ),
             button("Jump", x=16, y=320, on_click=click_jump),
             button("Reset", x=96, y=320, on_click=lambda: reset_game()),
+            button("保存造型", x=176, y=320, on_click=lambda: save_player_costume()),
+            button("切换造型", x=276, y=320, on_click=lambda: cycle_player_costume()),
             width=640,
             height=360,
             layout="free",

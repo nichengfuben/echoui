@@ -14,7 +14,7 @@ def analyze_ui(root: Any) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], L
     for node in _walk(root):
         props = node.props
         if node.role == "file_input":
-            sig = props.get("_file_signal")
+            sig = props.get("_file_signal") or props.get("signal")
             if sig:
                 file_inputs.append(
                     {

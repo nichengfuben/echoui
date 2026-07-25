@@ -38,6 +38,17 @@ def test_file_input_emits_type_file():
     ) or ""
     assert 'type="file"' in html
     assert 'accept="image/*"' in html
+    assert node.props.get("_file_signal") == "App.avatar_url"
+    assert node.props.get("name") == "avatar"
+
+
+def test_file_input_wired_in_client_cfg():
+    reset_id_gen()
+    root = file_input("bg", accept="image/*", signal="RunnerStore.bg_url")
+    _, _, files, _ = analyze_ui(root)
+    assert len(files) == 1
+    assert files[0]["signal"] == "RunnerStore.bg_url"
+    assert files[0]["node"] == root.id
 
 
 def test_image_src_binding_collected():

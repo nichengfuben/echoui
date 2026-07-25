@@ -160,7 +160,6 @@ _BUILTIN_ROLES = (
     "date_picker",
     "time_picker",
     "datetime_picker",
-    "file_input",
     "card",
     "video",
     "audio_player",

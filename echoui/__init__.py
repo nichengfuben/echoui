@@ -35,7 +35,7 @@ from echoui.stage import stage as stage_fn
 from echoui.state import Store
 from echoui.style import css, keyframes_css, set_theme, style, theme
 
-__version__ = "1.2.4"
+__version__ = "1.2.5"
 
 # Built-in role factories — resolved via layout module
 _BUILTIN_ROLE_NAMES = (
