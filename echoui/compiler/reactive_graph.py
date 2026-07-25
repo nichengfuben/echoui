@@ -44,6 +44,30 @@ def analyze_bindings(root: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
             else:
                 tpl = template_from_value(value, deps, signals)
                 bindings.append({"t": "text", "n": node.id, "tpl": tpl, "d": deps})
+        src_fn = node.props.get("_src_fn")
+        if callable(src_fn):
+            try:
+                value, deps = trace_binding_deps(src_fn)
+            except Exception:
+                value, deps = str(src_fn()), []
+            if deps:
+                bindings.append(
+                    {"t": "attr", "n": node.id, "a": "src", "v": "{" + deps[0] + "}", "d": deps}
+                )
+            else:
+                bindings.append(
+                    {"t": "attr", "n": node.id, "a": "src", "v": str(value), "d": []}
+                )
+        bg_fn = node.props.get("_bg_fn")
+        if callable(bg_fn):
+            try:
+                _, deps = trace_binding_deps(bg_fn)
+            except Exception:
+                deps = []
+            if deps:
+                bindings.append(
+                    {"t": "bg", "n": node.id, "v": "{" + deps[0] + "}", "d": deps}
+                )
         for prop, binding in node.bindings.items():
             if not isinstance(binding, dict):
                 continue
@@ -51,9 +75,18 @@ def analyze_bindings(root: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
             if btype == "signal":
                 key = binding.get("key")
                 if key:
-                    bindings.append(
-                        {"t": "text", "n": node.id, "tpl": "{" + key + "}", "d": [key]}
-                    )
+                    if prop in ("src", "href"):
+                        bindings.append(
+                            {"t": "attr", "n": node.id, "a": prop, "v": "{" + key + "}", "d": [key]}
+                        )
+                    elif prop == "background":
+                        bindings.append(
+                            {"t": "bg", "n": node.id, "v": "{" + key + "}", "d": [key]}
+                        )
+                    else:
+                        bindings.append(
+                            {"t": "text", "n": node.id, "tpl": "{" + key + "}", "d": [key]}
+                        )
             elif btype == "fn":
                 fn = binding.get("_fn")
                 if fn is None:

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Set
 from echoui.compiler.emit_actions import compile_actions
 from echoui.compiler.emit_frame import compile_frame_script
 from echoui.compiler.emit_free_gpu import collect_free_gpu
-from echoui.compiler.reactive_graph import analyze_bindings
+from echoui.compiler.ui_collect import analyze_ui
 from echoui.compiler.sss import normalize_screen_tree
 from echoui.compiler.validate_local import validate_local_compile
 from echoui.events import collect_frame_handlers, collect_key_handlers, collect_screen_handlers
@@ -16,9 +16,11 @@ from echoui.events import collect_frame_handlers, collect_key_handlers, collect_
 def analyze(parsed: Dict[str, Any]) -> Dict[str, Any]:
     root = parsed["root"]
     normalize_screen_tree(root)
-    reactive_bindings, signals = analyze_bindings(root)
+    reactive_bindings, signals, file_inputs, overlays = analyze_ui(root)
     parsed["signals"] = signals
     parsed["reactive_bindings"] = reactive_bindings
+    parsed["file_inputs"] = file_inputs
+    parsed["overlays"] = overlays
     parsed["actions"] = compile_actions(
         parsed.get("handlers", {}),
         app_initial=getattr(parsed.get("app"), "initial", "Home"),

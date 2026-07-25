@@ -29,6 +29,8 @@ class RunnerStore(Store):
     obs1_x: float = -200.0
     obs2_x: float = -200.0
     obs3_x: float = -200.0
+    bg_url: str = ""
+    player_url: str = ""
 
 
 def _obs_fields() -> list[str]:

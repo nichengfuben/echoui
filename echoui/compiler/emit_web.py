@@ -28,6 +28,14 @@ body{font-family:system-ui,sans-serif;background:#000;color:#1a1a1a}
 .e-gpu-hide{visibility:hidden}
 .e-canvas{display:block}
 .e-chart,.e-map,.e-gantt{display:block}
+.e-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000}
+.e-overlay.e-overlay-open{display:flex}
+.e-modal-panel,.e-drawer-panel,.e-sheet-panel{background:#fff;padding:20px;border-radius:8px;max-width:92vw;max-height:90vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.e-drawer-panel{position:fixed;top:0;bottom:0;width:min(420px,90vw)}
+.e-drawer-panel.e-side-right{right:0}
+.e-drawer-panel.e-side-left{left:0}
+.e-file-input{margin:8px 0}
+.e-img{object-fit:contain}
 """
 
 
@@ -86,6 +94,9 @@ def _render_node(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> 
         return _render_stage(node, gpu=gpu)
     if role == "screen":
         return _render_screen(node, gpu=gpu)
+    overlay_role = props.get("role")
+    if overlay_role in ("modal", "drawer", "sheet", "alert", "confirm"):
+        return _render_overlay(node, gpu=gpu)
     tag = node.get("tag", "div")
     nid = node.get("id", "")
     cls = _class_for(node)
@@ -94,9 +105,11 @@ def _render_node(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> 
     if style_attr:
         attrs += f' style="{style_attr}"'
     if tag == "input":
-        return f'<input{attrs} name="{html.escape(str(props.get("name","")))}"/>'
+        return _render_input(node, attrs)
     if tag == "img":
-        return f'<img{attrs} src="{html.escape(str(props.get("src","")))}" alt=""/>'
+        alt = html.escape(str(props.get("alt", "")))
+        src = html.escape(str(props.get("src", "")))
+        return f'<img{attrs} class="{html.escape(cls)} e-img" src="{src}" alt="{alt}"/>'
     if tag == "video":
         src = html.escape(str(props.get("src", "")))
         return (
@@ -114,6 +127,53 @@ def _render_node(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> 
     if cls_extra:
         attrs = attrs.replace(f'class="{html.escape(cls)}"', f'class="{html.escape(cls + cls_extra)}"')
     return f"<{tag}{attrs}>{inner}{kids}</{tag}>"
+
+
+def _render_input(node: Dict[str, Any], attrs: str) -> str:
+    props = node.get("props", {})
+    role = node.get("role", "input")
+    name = html.escape(str(props.get("name", "")))
+    itype = str(props.get("type", "text"))
+    if role == "file_input":
+        itype = "file"
+    parts = [attrs, f'type="{html.escape(itype)}"', f'name="{name}"', 'class="e-file-input"']
+    if itype == "file" and props.get("accept"):
+        parts.append(f'accept="{html.escape(str(props["accept"]))}"')
+    if props.get("placeholder"):
+        parts.append(f'placeholder="{html.escape(str(props["placeholder"]))}"')
+    if props.get("value") is not None:
+        parts.append(f'value="{html.escape(str(props["value"]))}"')
+    if props.get("checked"):
+        parts.append("checked")
+    if props.get("disabled"):
+        parts.append("disabled")
+    if props.get("min") is not None:
+        parts.append(f'min="{html.escape(str(props["min"]))}"')
+    if props.get("max") is not None:
+        parts.append(f'max="{html.escape(str(props["max"]))}"')
+    label = props.get("label")
+    inp = f"<input {' '.join(parts)}/>"
+    if label:
+        return f'<label>{html.escape(str(label))}{inp}</label>'
+    return inp
+
+
+def _render_overlay(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> str:
+    props = node.get("props", {})
+    kind = props.get("role", "modal")
+    nid = node.get("id", "")
+    open_sig = props.get("_open_signal", "")
+    side = props.get("side", "right")
+    panel_cls = f"e-{kind}-panel e-side-{side}" if kind == "drawer" else f"e-{kind}-panel"
+    kids = "".join(_render_node(c, gpu=gpu) for c in node.get("children", []))
+    msg = html.escape(str(props.get("message", "")))
+    inner = kids or (f"<p>{msg}</p>" if msg else "")
+    data_open = f' data-open-signal="{html.escape(open_sig)}"' if open_sig else ""
+    return (
+        f'<div id="{html.escape(nid)}" class="e-overlay e-{html.escape(kind)}" '
+        f'aria-hidden="true"{data_open}>'
+        f'<div class="{panel_cls}">{inner}</div></div>'
+    )
 
 
 def _is_gpu_child(node: Dict[str, Any], gpu: Dict[str, Any]) -> bool:

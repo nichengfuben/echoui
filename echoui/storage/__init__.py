@@ -122,3 +122,22 @@ def json_get(store: MemoryBackend, key: str) -> Any:
 
 def json_set(store: MemoryBackend, key: str, value: Any) -> None:
     store.set(key, json.dumps(value))
+
+
+from echoui.storage.files import Files, files  # noqa: E402
+
+__all__ = [
+    "local",
+    "session",
+    "cookies",
+    "kv",
+    "cache_get",
+    "cache_set",
+    "cache_clear",
+    "sqlite",
+    "web_sqlite",
+    "json_get",
+    "json_set",
+    "Files",
+    "files",
+]

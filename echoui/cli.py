@@ -353,7 +353,7 @@ name = "{name}"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "echoui[web]>=1.0.1",
+    "echoui[web]>=1.2.0",
 ]
 
 [build-system]

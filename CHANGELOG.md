@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 媒体/上传/音频实装 (2026-07-25)
+
+- **`echoui.audio`**：`play` / `play_bgm` / `set_volume` / `TTS` + Web runtime `audio.js`
+- **`file_input`**：Web `type=file` emit + FileReader → Signal 绑定
+- **`image(src=signal)`**：响应式 `src` 属性绑定
+- **overlay**：modal/drawer/sheet Web 渲染 + open signal
+- **platform/media/storage.files/desktop/mobile/rtc/graphql/rpc/three**：实装 API（非空壳）
+- **跑酷示例**：上传背景/角色图 + 跳跃音效
+- runtime 扩展：`platform.js` + `ui.js`（~16KB bundle）
+
 ## 1.0.1 — physics extra 兼容 Python 3.14 (2026-07-25)
 
 - **`physics` extra**：`box2d-py` 替换为 `pymunk>=7.0.0`（PyPI 有 3.14 wheel，持续维护）

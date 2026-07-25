@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from echoui import App, Screen, Store, audio, col, heading, text, video
+from echoui import App, Screen, Store, audio_player, col, heading, text, video
 
 class MediaStore(Store):
     note: str = "HTML5 media roles"
@@ -23,7 +23,7 @@ class Media(Screen):
                 width=480,
                 height=270,
             ),
-            audio(src="https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"),
+            audio_player(src="https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"),
         )
 
 

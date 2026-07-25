@@ -144,6 +144,10 @@ def _stmt_ops(stmt: ast.AST, ctx: FrameCtx) -> List[Dict[str, Any]]:
         return [{"continue": True}]
     if isinstance(stmt, ast.Break):
         return [{"break": True}]
+    if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+        op = _expr_call_op(stmt.value, ctx)
+        if op:
+            return [op]
     op = _assign_op(stmt, ctx)
     return [op] if op else []
 
@@ -159,6 +163,24 @@ def _for_ops(stmt: ast.For, ctx: FrameCtx) -> List[Dict[str, Any]]:
 def _flatten_loop_body(stmt: ast.AST, ctx: FrameCtx) -> Dict[str, Any]:
     ops = _stmt_ops(stmt, ctx)
     return ops[0] if len(ops) == 1 else {"block": ops}
+
+
+def _expr_call_op(call: ast.Call, ctx: FrameCtx) -> Optional[Dict[str, Any]]:
+    if isinstance(call.func, ast.Attribute) and call.func.attr == "play":
+        if isinstance(call.func.value, ast.Name) and call.func.value.id == "audio":
+            if call.args and isinstance(call.args[0], ast.Constant):
+                return {"audio": "play", "src": str(call.args[0].value)}
+    name = _name(call.func)
+    if name:
+        fn = _lookup_callable(ctx.fn, name)
+        if fn:
+            sub_ops = _compile_body(fn, ctx)
+            if not sub_ops:
+                return None
+            if len(sub_ops) == 1:
+                return sub_ops[0]
+            return {"block": sub_ops}
+    return None
 
 
 def _assign_op(stmt: ast.AST, ctx: FrameCtx) -> Optional[Dict[str, Any]]:
@@ -442,6 +464,14 @@ def _emit_op(op: Dict[str, Any], indent: int) -> List[str]:
     if "ox_sub" in op:
         out.append(f"{sp}ox-=({op['ox_sub']});")
         out.append(f"{sp}s('RunnerStore.'+field,ox);")
+        return out
+    if "audio" in op:
+        src = json_quote(op["src"])
+        out.append(f"{sp}if(window.__echoui&&window.__echoui.audio)window.__echoui.audio.play({src});")
+        return out
+    if "block" in op:
+        for inner in op["block"]:
+            out.extend(_emit_op(inner, indent))
         return out
     return out
 

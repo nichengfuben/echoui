@@ -88,8 +88,32 @@ def button(label: str, on_click: Optional[Callable[..., None]] = None, **props: 
     return _role("button", text=label, label=label, on_click=on_click, **props)
 
 
-def image(src: str, alt: str = "", **props: Any) -> IRNode:
+def image(src: Union[str, Callable[[], str]], alt: str = "", **props: Any) -> IRNode:
+    if callable(src):
+        node = _role("image", src="", alt=alt, **props)
+        node.props["_src_fn"] = src
+        node.bindings["src"] = src
+        return node
     return _role("image", src=src, alt=alt, **props)
+
+
+def file_input(
+    name: str,
+    *,
+    accept: str = "*/*",
+    signal: str | None = None,
+    preview_id: str | None = None,
+    label: str | None = None,
+    **props: Any,
+) -> IRNode:
+    p = {**props, "name": name, "accept": accept, "type": "file"}
+    if signal:
+        p["_file_signal"] = signal
+    if preview_id:
+        p["preview_id"] = preview_id
+    if label:
+        p["label"] = label
+    return _role("file_input", **p)
 
 
 def box(*children: Any, **props: Any) -> IRNode:

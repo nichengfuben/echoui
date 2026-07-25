@@ -43,6 +43,8 @@ def build_client_cfg(lowered: Dict[str, Any]) -> Dict[str, Any]:
         "keymap": keymap,
         "click_map": click_map,
         "hydrate": True,
+        "file_inputs": lowered.get("file_inputs", []),
+        "overlays": lowered.get("overlays", []),
     }
 
 

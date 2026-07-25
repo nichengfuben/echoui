@@ -22,13 +22,20 @@ class OverlayState:
         self.open = False
 
 
-def modal(content: Any, *, open: bool = False) -> IRNode:
-    return IRNode("box", props={"role": "modal", "open": open}, children=normalize_children([content]))
+def modal(content: Any, *, open: bool = False, open_signal: str | None = None) -> IRNode:
+    props: Dict[str, Any] = {"role": "modal", "open": open}
+    if open_signal:
+        props["_open_signal"] = open_signal
+    return IRNode("box", props=props, children=normalize_children([content]))
 
 
-def drawer(content: Any, *, side: str = "right", open: bool = False) -> IRNode:
-    return IRNode("box", props={"role": "drawer", "side": side, "open": open},
-                  children=normalize_children([content]))
+def drawer(
+    content: Any, *, side: str = "right", open: bool = False, open_signal: str | None = None
+) -> IRNode:
+    props: Dict[str, Any] = {"role": "drawer", "side": side, "open": open}
+    if open_signal:
+        props["_open_signal"] = open_signal
+    return IRNode("box", props=props, children=normalize_children([content]))
 
 
 def sheet(content: Any, *, open: bool = False) -> IRNode:
