@@ -4,7 +4,7 @@
 |----|------|
 | 规格域 | data / forms / i18n / collab |
 | 状态 | done (Web/Python API) |
-| 测试 | `test_data_i18n_forms.py`, `test_collab_sync.py` |
+| 测试 | `test_data_i18n_forms.py`, `test_collab_sync.py`, `test_ecosystem_v09.py` |
 | 示例 | `examples/07_full_web`, `09_full` |
 
 ## forms — 文件校验
@@ -19,7 +19,7 @@ f.validate({"img": {"size": 512, "type": "image/png"}})
 ## data — 虚拟列表 / 表格
 
 ```python
-from echoui.data import VirtualList, DataTable
+from echoui.data import DataTable, Tree, TreeNode, VirtualList
 
 vl = VirtualList(items=range(1000), item_height=24, viewport_height=240)
 vl.scroll_to(50)
@@ -37,4 +37,4 @@ from echoui.i18n import t, plural, set_locale, load_catalog, load_plural
 
 ## collab
 
-`SyncRelay` / `Session` — LWW 广播（内存/测试）；生产网络同步见 roadmap pycrdt。
+`Doc` / `Presence` / `Awareness` + `SyncRelay` LWW 广播（内存/测试）；pycrdt 见 `echoui[collab]`。详见 [v09-platform-print-devtools.md](v09-platform-print-devtools.md)。

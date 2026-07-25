@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+from game import GROUND_Y, MAX_OBS, PLAYER_X, RunnerStore, jump, reset_game, tick
+
 from echoui import App, Screen, button, file_input, image, on, text
 from echoui.audio import audio
 from echoui.layout import box
 from echoui.stage import stage
 
-from game import GROUND_Y, MAX_OBS, PLAYER_X, RunnerStore, jump, reset_game, tick
-
 store = RunnerStore()
+
+
+def score_text() -> str:
+    return (
+        f"Score: {store.score}"
+        + (" — GAME OVER (R)" if store.game_over else " — Space jump")
+    )
 
 
 def click_jump() -> None:
@@ -45,10 +52,6 @@ class Runner(Screen):
             )
             for i in range(MAX_OBS)
         ]
-        score_text = lambda: (
-            f"Score: {store.score}"
-            + (" — GAME OVER (R)" if store.game_over else " — Space jump")
-        )
 
         return stage(
             box(width=640, height=360, x=0, y=0, background="#87ceeb"),

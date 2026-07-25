@@ -330,7 +330,15 @@ def _dev_watch_filter():
 
     filt = DefaultFilter()
     filt._ignore_dirs = filt._ignore_dirs | {"dist", "build", ".echoui"}
-    return filt
+    skip = {"dist", "build", ".echoui"}
+
+    def watch_filter(change, path: str) -> bool:
+        norm = path.replace("\\", "/")
+        if any(part in skip for part in norm.split("/")):
+            return False
+        return filt(change, norm)
+
+    return watch_filter
 
 
 def dev_server(app: Any, *, entry: str = "main.py", host: str = "0.0.0.0", port: int = 7999) -> None:

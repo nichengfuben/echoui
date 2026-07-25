@@ -2,7 +2,19 @@
 
 from __future__ import annotations
 
-from echoui import App, Screen, Store, audio_player, button, col, file_input, heading, image, text, video
+from echoui import (
+    App,
+    Screen,
+    Store,
+    audio_player,
+    button,
+    col,
+    file_input,
+    heading,
+    image,
+    text,
+    video,
+)
 from echoui.costume import CostumeFieldsMixin, bind_costumes, costume
 
 

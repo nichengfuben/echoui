@@ -6,6 +6,7 @@ from echoui import App, Screen, Store, button, chart, col, heading, input_field,
 from echoui.forms import Form, email, field, required
 from echoui.raw import js
 
+
 class DashStore(Store):
     name: str = ""
     email: str = ""

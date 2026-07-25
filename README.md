@@ -2,7 +2,7 @@
 
 One **Screen–Stage–Sprite** paradigm compiles to Web, desktop, mobile, TUI, and GUI.
 
-**Version:** 1.0.0 · **License:** MIT · **PyPI:** `pip install echoui` · **GitHub:** [nichengfuben/echoui](https://github.com/nichengfuben/echoui)
+**Version:** 1.2.12 · **License:** MIT · **PyPI:** `pip install echoui` · **GitHub:** [nichengfuben/echoui](https://github.com/nichengfuben/echoui)
 
 ## 像 npm 一样用
 
@@ -22,7 +22,7 @@ echoui build --target web
 echoui dev --port 8765
 ```
 
-PyPI 尚未发布 **1.0.0** 时，可从 GitHub 安装：
+PyPI 尚未发布目标版本时，可从 GitHub 安装：
 
 ```bash
 pip install "echoui[web] @ git+https://github.com/nichengfuben/echoui.git"

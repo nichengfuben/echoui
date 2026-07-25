@@ -1,4 +1,4 @@
-from echoui import App, Screen, Sprite, Store, button, on, text
+from echoui import App, Screen, Sprite, Store, button, text
 from echoui.layout import box
 from echoui.stage import stage
 
