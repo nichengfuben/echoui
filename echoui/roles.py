@@ -51,6 +51,7 @@ ROLE_MAP: Dict[str, str] = {
     "tree": "ul",
     "grid_view": "div",
     "collection": "div",
+    "virtual_list": "div",
     "tabs": "div",
     "accordion": "div",
     "stepper": "div",

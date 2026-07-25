@@ -52,8 +52,11 @@ def run_desktop(app_json: Path) -> None:
 def render_qt_tree(node: dict[str, Any]) -> Any:
     try:
         from PySide6.QtWidgets import (
+            QCheckBox,
             QHBoxLayout,
             QLabel,
+            QLineEdit,
+            QProgressBar,
             QPushButton,
             QVBoxLayout,
             QWidget,
@@ -66,11 +69,25 @@ def render_qt_tree(node: dict[str, Any]) -> Any:
     children = node.get("children", [])
 
     if role in ("text", "heading", "paragraph"):
-        w = QLabel(str(props.get("text", props.get("label", ""))))
+        return QLabel(str(props.get("text", props.get("label", ""))))
+    if role == "button" or role == "icon_button":
+        return QPushButton(str(props.get("label", props.get("text", "Button"))))
+    if role in ("input", "textarea", "password", "number_input"):
+        w = QLineEdit()
+        w.setPlaceholderText(str(props.get("name", props.get("placeholder", ""))))
+        if props.get("value"):
+            w.setText(str(props["value"]))
         return w
-    if role == "button":
-        btn = QPushButton(str(props.get("label", props.get("text", "Button"))))
-        return btn
+    if role in ("checkbox", "switch"):
+        cb = QCheckBox(str(props.get("label", props.get("text", "Option"))))
+        if props.get("checked") or props.get("value"):
+            cb.setChecked(True)
+        return cb
+    if role == "progress":
+        bar = QProgressBar()
+        bar.setMaximum(int(props.get("max", 100)))
+        bar.setValue(int(props.get("value", 0)))
+        return bar
     if props.get("direction") == "row" or role == "stage":
         box = QWidget()
         hlay = QHBoxLayout(box)

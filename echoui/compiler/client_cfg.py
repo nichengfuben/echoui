@@ -45,6 +45,7 @@ def build_client_cfg(lowered: Dict[str, Any]) -> Dict[str, Any]:
         "hydrate": True,
         "file_inputs": lowered.get("file_inputs", []),
         "overlays": lowered.get("overlays", []),
+        "gestures": lowered.get("gestures", []),
     }
 
 

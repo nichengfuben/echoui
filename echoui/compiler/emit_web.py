@@ -7,6 +7,7 @@ import json
 from typing import Any, Dict
 
 from echoui.compiler.client_cfg import build_client_cfg
+from echoui.compiler.emit_roles import render_role_html
 from echoui.runtime import load_web_runtime
 
 _BASE_CSS = """
@@ -36,6 +37,19 @@ body{font-family:system-ui,sans-serif;background:#000;color:#1a1a1a}
 .e-drawer-panel.e-side-left{left:0}
 .e-file-input{margin:8px 0}
 .e-img{object-fit:contain}
+.e-badge,.e-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#eee}
+.e-card{border:1px solid #ddd;border-radius:8px;padding:16px;background:#fff}
+.e-table{border-collapse:collapse;width:100%}
+.e-table th,.e-table td{border:1px solid #ddd;padding:8px;text-align:left}
+.e-scroll{overflow:auto}
+.e-spinner{display:inline-block;width:16px;height:16px;border:2px solid #ccc;border-top-color:#333;border-radius:50%;animation:e-spin .8s linear infinite}
+@keyframes e-spin{to{transform:rotate(360deg)}}
+.e-skeleton{background:linear-gradient(90deg,#eee,#f5f5f5,#eee);background-size:200% 100%}
+.e-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover}
+.e-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;background:#6200EE;color:#fff}
+.e-field{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.e-input,.e-textarea,.e-select{padding:8px;border:1px solid #ccc;border-radius:6px}
+@media print{.no-print{display:none!important}body{background:#fff;color:#000}}
 """
 
 
@@ -104,8 +118,6 @@ def _render_node(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> 
     style_attr = _style_attr(props)
     if style_attr:
         attrs += f' style="{style_attr}"'
-    if tag == "input":
-        return _render_input(node, attrs)
     if tag == "img":
         alt = html.escape(str(props.get("alt", "")))
         src = html.escape(str(props.get("src", "")))
@@ -119,43 +131,25 @@ def _render_node(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> 
     if tag == "audio":
         src = html.escape(str(props.get("src", "")))
         return f"<audio{attrs} src=\"{src}\" controls></audio>"
-    if tag == "hr":
-        return f"<hr{attrs}/>"
     inner = html.escape(_text_content(props))
     kids = "".join(_render_node(c, gpu=gpu) for c in node.get("children", []))
     cls_extra = " e-gpu-hide" if gpu and _is_gpu_child(node, gpu) else ""
+    full_cls = cls + cls_extra
+    st = f' style="{style_attr}"' if style_attr else ""
+    rendered = render_role_html(
+        node,
+        attrs=f' id="{html.escape(nid)}"',
+        cls=full_cls,
+        style_attr=st,
+        inner=inner,
+        kids=kids,
+        gpu_hide=cls_extra,
+    )
+    if rendered:
+        return rendered
     if cls_extra:
-        attrs = attrs.replace(f'class="{html.escape(cls)}"', f'class="{html.escape(cls + cls_extra)}"')
+        attrs = attrs.replace(f'class="{html.escape(cls)}"', f'class="{html.escape(full_cls)}"')
     return f"<{tag}{attrs}>{inner}{kids}</{tag}>"
-
-
-def _render_input(node: Dict[str, Any], attrs: str) -> str:
-    props = node.get("props", {})
-    role = node.get("role", "input")
-    name = html.escape(str(props.get("name", "")))
-    itype = str(props.get("type", "text"))
-    if role == "file_input":
-        itype = "file"
-    parts = [attrs, f'type="{html.escape(itype)}"', f'name="{name}"', 'class="e-file-input"']
-    if itype == "file" and props.get("accept"):
-        parts.append(f'accept="{html.escape(str(props["accept"]))}"')
-    if props.get("placeholder"):
-        parts.append(f'placeholder="{html.escape(str(props["placeholder"]))}"')
-    if props.get("value") is not None:
-        parts.append(f'value="{html.escape(str(props["value"]))}"')
-    if props.get("checked"):
-        parts.append("checked")
-    if props.get("disabled"):
-        parts.append("disabled")
-    if props.get("min") is not None:
-        parts.append(f'min="{html.escape(str(props["min"]))}"')
-    if props.get("max") is not None:
-        parts.append(f'max="{html.escape(str(props["max"]))}"')
-    label = props.get("label")
-    inp = f"<input {' '.join(parts)}/>"
-    if label:
-        return f'<label>{html.escape(str(label))}{inp}</label>'
-    return inp
 
 
 def _render_overlay(node: Dict[str, Any], *, gpu: Dict[str, Any] | None = None) -> str:

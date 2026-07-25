@@ -17,6 +17,7 @@ EXAMPLES = [
     "06_runner",
     "07_full_web",
     "08_media",
+    "09_full",
 ]
 
 

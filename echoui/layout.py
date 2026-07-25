@@ -201,6 +201,7 @@ _BUILTIN_ROLES = (
     "qr",
     "barcode",
     "collection",
+    "virtual_list",
     "window",
     "tray",
     "sprite",

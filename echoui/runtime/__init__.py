@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 RUNTIME_WEB_DIR = Path(__file__).parent / "web"
-_WEB_PARTS = ("core.js", "storage.js", "webgpu.js", "widgets.js", "audio.js", "platform.js", "ui.js")
+_WEB_PARTS = ("core.js", "storage.js", "webgpu.js", "widgets.js", "audio.js", "platform.js", "ui.js", "gestures.js")
 
 
 def load_web_runtime(*, minify: bool = True) -> str:

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from echoui.audio import AudioEngine, TTS, audio
-from echoui.compiler.emit_web import _render_input, _render_node
+from echoui.compiler.emit_roles import render_role_html
+from echoui.compiler.emit_web import _render_node
 from echoui.compiler.ui_collect import analyze_ui
 from echoui.layout import file_input, image
 from echoui.sprite import IRNode, reset_id_gen
@@ -27,7 +28,14 @@ def test_file_input_emits_type_file():
         "props": node.props,
         "children": [],
     }
-    html = _render_input(lowered, f' id="{node.id}" class="e-file_input"')
+    html = render_role_html(
+        lowered,
+        attrs=f' id="{node.id}"',
+        cls="e-file_input",
+        style_attr="",
+        inner="",
+        kids="",
+    ) or ""
     assert 'type="file"' in html
     assert 'accept="image/*"' in html
 

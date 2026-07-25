@@ -81,6 +81,50 @@ def is_true(msg: str = "Must be checked") -> ValidatorFn:
     return _v
 
 
+def file_size(max_bytes: int, msg: str | None = None) -> ValidatorFn:
+    """Validate uploaded file size (bytes or File-like dict with size)."""
+
+    def _v(value: Any, _data: Dict[str, Any]) -> Optional[str]:
+        if value is None:
+            return None
+        size = value if isinstance(value, (int, float)) else getattr(value, "size", None)
+        if size is None and isinstance(value, dict):
+            size = value.get("size")
+        if size is not None and int(size) > max_bytes:
+            return msg or f"File must be ≤ {max_bytes} bytes"
+        return None
+
+    return _v
+
+
+def file_type(*mime_prefixes: str, msg: str | None = None) -> ValidatorFn:
+    """Validate file MIME type prefix, e.g. file_type('image/')."""
+
+    def _v(value: Any, _data: Dict[str, Any]) -> Optional[str]:
+        if value is None:
+            return None
+        mime = value if isinstance(value, str) else getattr(value, "type", None)
+        if mime is None and isinstance(value, dict):
+            mime = value.get("type", value.get("mime", ""))
+        if mime and mime_prefixes and not any(str(mime).startswith(p) for p in mime_prefixes):
+            return msg or f"File type must be one of: {', '.join(mime_prefixes)}"
+        return None
+
+    return _v
+
+
+def max_files(n: int, msg: str | None = None) -> ValidatorFn:
+    def _v(value: Any, _data: Dict[str, Any]) -> Optional[str]:
+        if value is None:
+            return None
+        count = len(value) if isinstance(value, (list, tuple)) else 1
+        if count > n:
+            return msg or f"At most {n} file(s)"
+        return None
+
+    return _v
+
+
 @dataclass
 class Field:
     name: str

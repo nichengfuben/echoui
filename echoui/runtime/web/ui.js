@@ -13,11 +13,25 @@ function wireFiles(list,S,s,sub){
     var e=q(f.node);if(!e)return;
     e.addEventListener("change",function(){
       var file=e.files&&e.files[0];if(!file||!f.signal)return;
+      if(f.uploadUrl&&window.__echoui&&window.__echoui.upload){
+        window.__echoui.upload.send(f.uploadUrl,f.field||"file",file,f.signal,s);
+        return;
+      }
       var r=new FileReader();
       r.onload=function(){s(f.signal,r.result);if(f.preview&&f.previewNode){var img=q(f.previewNode);if(img)img.src=r.result;}};
       r.readAsDataURL(file);
     });
   });
+}
+function wireUploadProgress(signal,s,sub){
+  return function(pct){s(signal,pct);};
+}
+function sendUpload(url,field,file,signal,s){
+  var xhr=new XMLHttpRequest();
+  xhr.upload.onprogress=function(ev){if(ev.lengthComputable)s(signal,Math.round(100*ev.loaded/ev.total));};
+  var fd=new FormData();fd.append(field,file);
+  xhr.onload=function(){s(signal+"_done",xhr.status===200?xhr.responseText:"error");};
+  xhr.open("POST",url);xhr.send(fd);
 }
 function wireOverlays(list,S,sub){
   (list||[]).forEach(function(o){
@@ -28,4 +42,5 @@ function wireOverlays(list,S,sub){
 }
 window.__echoui=window.__echoui||{};
 window.__echoui.ui={bindAttr:bindAttr,bindBg:bindBg,wireFiles:wireFiles,wireOverlays:wireOverlays};
+window.__echoui.upload={send:sendUpload,wireProgress:wireUploadProgress};
 })();

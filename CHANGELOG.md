@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1 — 全量 role emit / TUI IR / 数据与协作 (2026-07-25)
+
+- **`emit_roles`**：50+ 内建 role 统一 HTML emit（virtual_list、stepper、radio_group 等）
+- **TUI**：IR 驱动 Textual compose（`compose_ir`），JSON 导出脱敏
+- **Desktop**：扩展 input/checkbox/progress 等 Qt 渲染
+- **`echoui.data`**：VirtualList / DataTable
+- **`echoui.collab`**：SyncRelay / SyncClient WebSocket 同步
+- **forms**：file_size / file_type / max_files 校验器
+- **i18n**：plural / format_number / format_currency
+- **runtime**：gestures.js（pointer 拖拽 + 虚拟列表滚动）+ upload 进度
+- **examples/09_full**：全 role 展示示例
+
 ## 1.2.0 — 媒体/上传/音频实装 (2026-07-25)
 
 - **`echoui.audio`**：`play` / `play_bgm` / `set_volume` / `TTS` + Web runtime `audio.js`

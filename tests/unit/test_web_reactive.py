@@ -64,7 +64,7 @@ def test_build_emits_runtime_and_cfg(tmp_path):
     assert "/api/action" not in runtime
     assert "/api/frame" not in runtime
     assert "fetch(" not in runtime
-    assert len(runtime) < 16384  # core + storage + webgpu + widgets + audio + platform + ui
+    assert len(runtime) < 20480  # core + storage + webgpu + widgets + audio + platform + ui + gestures
 
 
 def test_mount_counter_click_updates_snapshot():
