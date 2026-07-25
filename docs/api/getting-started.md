@@ -1,41 +1,46 @@
 # Getting Started
 
-## 安装
+## 安装（类似 `npm install -g`）
 
 ```bash
-pip install echoui[web,dev]
-# 或本地开发
+pip install echoui[web]
+echoui version
+```
+
+PyPI 暂无 1.0.0 时：
+
+```bash
+pip install "echoui[web] @ git+https://github.com/nichengfuben/echoui.git"
+```
+
+本地开发 EchoUI 本身：
+
+```bash
+git clone https://github.com/nichengfuben/echoui.git
+cd echoui
 pip install -e ".[web,dev]"
 ```
 
-## Counter 示例
+## 新建项目（类似 `npm create`）
 
-```python
-from echoui import App, Screen, Store, col, text, button
-
-class CounterStore(Store):
-    count: int = 0
-
-store = CounterStore()
-
-class Counter(Screen):
-    def build(self):
-        return col(
-            text(lambda: f"Count: {store.count}"),
-            button("+1", on_click=lambda: setattr(store, "count", store.count + 1)),
-        )
-
-app = App(screens=[Counter], initial="Counter")
+```bash
+echoui new my-app
+cd my-app
+pip install -e .
+echoui build --target web
+echoui dev --port 8765
 ```
 
-## CLI
+打开 http://127.0.0.1:8765
 
-| 命令 | 说明 |
-|------|------|
-| `echoui new [name]` | 脚手架 |
-| `echoui dev --target web --port 7999` | 开发服务器 |
-| `echoui build --target web` | 编译输出 |
-| `echoui check` | 项目校验 |
-| `echoui version` | 打印版本 |
+## 已有 main.py
 
-完整示例见 `examples/02_counter/`。
+```bash
+echoui build --target web
+echoui dev --port 8765
+echoui preview --dir dist/web --port 8765
+```
+
+## Counter 源码
+
+见 `examples/02_counter/main.py` 或 `echoui new` 生成的 `main.py`。

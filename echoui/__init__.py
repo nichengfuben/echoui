@@ -34,7 +34,7 @@ from echoui.stage import stage as stage_fn
 from echoui.state import Store
 from echoui.style import css, keyframes_css, set_theme, style, theme
 
-__version__ = "0.9.2"
+__version__ = "1.0.0"
 
 # PLAN §6 extended roles — resolved via layout module
 _PLAN_ROLE_NAMES = (

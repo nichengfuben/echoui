@@ -10,27 +10,16 @@ from echoui.compiler.analyzer import analyze
 from echoui.compiler.emit_web import emit_web
 from echoui.compiler.lower import lower_web
 from echoui.compiler.optimizer import optimize
-from echoui.compiler.parser import parse_app
+from echoui.compiler.parser import collect_all_handlers, parse_app
 from echoui.compiler.ssr import render_ssr
 
 
 def build_target(app: Any, *, target: str = "web", out_dir: str = "dist/web", **kwargs: Any) -> str:
-    parsed = parse_app(app)
-    analyzed = analyze(parsed)
-    optimized = optimize(analyzed)
-    lowered = lower_web(optimized)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
     if target == "web":
-        ssr = render_ssr(lowered)
-        files = emit_web(lowered, ssr_html=ssr)
-        for name, content in files.items():
-            (out / name).write_text(content, encoding="utf-8")
-        manifest = {"target": "web", "screens": list(app.screens.keys())}
-        (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-        _write_pwa(out)
-        return str(out.resolve())
+        return _build_web(app, out)
 
     if target == "static":
         from echoui.targets.static import build_static
@@ -63,6 +52,35 @@ def build_target(app: Any, *, target: str = "web", out_dir: str = "dist/web", **
         return build_ios(app, out_dir=out_dir)
 
     raise ValueError(f"Unknown target: {target}")
+
+
+def _build_web(app: Any, out: Path) -> str:
+    screens = list(app.screens.keys())
+    saved = app._current
+    handlers, click_map, dom_handlers = collect_all_handlers(app)
+    runtime_written = False
+    for name in screens:
+        app.switch_screen(name)
+        parsed = parse_app(app)
+        parsed["handlers"] = handlers
+        parsed["click_map"] = click_map
+        parsed["dom_handlers"] = dom_handlers
+        analyzed = analyze(parsed)
+        optimized = optimize(analyzed)
+        lowered = lower_web(optimized)
+        ssr = render_ssr(lowered)
+        files = emit_web(lowered, ssr_html=ssr)
+        fname = "index.html" if name == app.initial else f"{name.lower()}.html"
+        (out / fname).write_text(files["index.html"], encoding="utf-8")
+        if not runtime_written:
+            (out / "runtime.js").write_text(files["runtime.js"], encoding="utf-8")
+            runtime_written = True
+    app.switch_screen(saved)
+    manifest = {"target": "web", "screens": screens}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (out / "screens.json").write_text(json.dumps(screens), encoding="utf-8")
+    _write_pwa(out)
+    return str(out.resolve())
 
 
 def _write_pwa(out: Path) -> None:

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import itertools
+import random
 from typing import Any, Dict, List, Union
 
+from echoui import sensing
 from echoui.chain import MotionChain
 from echoui.reactive import Computed, Signal
+from echoui.state import get_signal_key_for_signal
 
 _id_gen = itertools.count(1)
 
@@ -53,11 +56,12 @@ class IRNode:
 
 def _binding_ref(v: Any) -> Any:
     if isinstance(v, Signal):
-        return {"type": "signal", "id": id(v)}
+        key = get_signal_key_for_signal(v)
+        return {"type": "signal", "key": key or id(v)}
     if isinstance(v, Computed):
         return {"type": "computed", "id": id(v)}
     if callable(v) and not isinstance(v, type):
-        return {"type": "fn", "name": getattr(v, "__name__", "lambda")}
+        return {"type": "fn", "name": getattr(v, "__name__", "lambda"), "_fn": v}
     return v
 
 
@@ -67,9 +71,19 @@ class Sprite:
     y: float = 0
     rotation: float = 0
     scale: float = 1
+    opacity: float = 1.0
+    hidden: bool = False
+    layer: int = 0
+    width: float = 32
+    height: float = 32
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
+
+    def __init__(self) -> None:
+        self._children: List["Sprite"] = []
+        self._effects: Dict[str, float] = {}
+        self._destroyed = False
 
     def build(self) -> Union["IRNode", "Sprite", List[Any], None]:
         return IRNode(self.role)
@@ -83,8 +97,24 @@ class Sprite:
     def on_update(self, prev: Dict[str, Any]) -> None:
         pass
 
-    def move_to(self, x: float, y: float) -> "Sprite":
-        self.x, self.y = x, y
+    def on_clone(self) -> None:
+        pass
+
+    def on_error(self, err: Exception) -> None:
+        return None
+
+    def move_to(self, x: float | str, y: float | str | None = None) -> "Sprite":
+        if y is None and isinstance(x, str):
+            y = x
+            x = 0
+        if x == "random":
+            x = random.uniform(0, 640)
+        if y == "random":
+            y = random.uniform(0, 360)
+        if isinstance(x, (int, float)):
+            self.x = float(x)
+        if isinstance(y, (int, float)):
+            self.y = float(y)
         return self
 
     def set_x(self, x: float) -> "Sprite":
@@ -107,8 +137,101 @@ class Sprite:
         self.rotation += deg
         return self
 
+    def move_steps(self, steps: float) -> "Sprite":
+        import math
+
+        rad = math.radians(self.rotation)
+        self.x += math.cos(rad) * steps
+        self.y += math.sin(rad) * steps
+        return self
+
+    def show(self) -> "Sprite":
+        self.hidden = False
+        return self
+
+    def hide(self) -> "Sprite":
+        self.hidden = True
+        return self
+
+    def set_opacity(self, value: float) -> "Sprite":
+        self.opacity = value
+        return self
+
+    def set_size(self, w: float, h: float | None = None) -> "Sprite":
+        self.width = w
+        if h is not None:
+            self.height = h
+        return self
+
+    def change_size(self, delta: float) -> "Sprite":
+        self.width += delta
+        self.height += delta
+        return self
+
+    def set_scale(self, value: float) -> "Sprite":
+        self.scale = value
+        return self
+
+    def set_effect(self, name: str, value: float) -> "Sprite":
+        self._effects[name] = value
+        return self
+
+    def clear_effects(self) -> "Sprite":
+        self._effects.clear()
+        return self
+
+    def move_to_front(self) -> "Sprite":
+        self.layer += 1
+        return self
+
+    def move_to_back(self) -> "Sprite":
+        self.layer -= 1
+        return self
+
+    def touches(self, other: "Sprite") -> bool:
+        return sensing.touches(self, other)
+
+    def distance_to(self, other: "Sprite") -> float:
+        return sensing.distance_to(self, other)
+
+    def overlapping(self, other: "Sprite") -> bool:
+        return sensing.overlapping(self, other)
+
     def glide_to(self, x: float, y: float, duration: float) -> MotionChain:
         return MotionChain(self).glide_to(x, y, duration)
+
+    def fade_in(self, duration: float = 0.3) -> MotionChain:
+        return MotionChain(self).fade_in(duration)
+
+    def fade_out(self, duration: float = 0.3) -> MotionChain:
+        return MotionChain(self).fade_out(duration)
+
+    def spin(self, degrees: float, duration: float) -> MotionChain:
+        return MotionChain(self).spin(degrees, duration)
+
+    def add(self, child: "Sprite") -> "Sprite":
+        self._children.append(child)
+        return self
+
+    def remove(self, child: "Sprite") -> "Sprite":
+        if child in self._children:
+            self._children.remove(child)
+        return self
+
+    def clear_children(self) -> "Sprite":
+        self._children.clear()
+        return self
+
+    def destroy(self) -> None:
+        self._destroyed = True
+        self.on_unmount()
+
+    def clone(self) -> "Sprite":
+        import copy
+
+        dup = copy.copy(self)
+        dup.on_clone()
+        return dup
 
     def to_ir(self) -> IRNode:
         built = self.build()
@@ -120,6 +243,14 @@ class Sprite:
         node.props.setdefault("y", self.y)
         node.props.setdefault("rotation", self.rotation)
         node.props.setdefault("scale", self.scale)
+        node.props.setdefault("opacity", self.opacity)
+        if self.hidden:
+            node.props["hidden"] = True
+        if self._effects:
+            node.props["effects"] = dict(self._effects)
+        from echoui.events import attach_class_handlers
+
+        attach_class_handlers(node, self.__class__)
         return node
 
 

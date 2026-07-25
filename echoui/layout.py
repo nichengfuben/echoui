@@ -61,6 +61,7 @@ def _role(
         p["_handler_click"] = on_click
     bindings: Dict[str, Any] = {}
     if callable(text):
+        p["_text_fn"] = text
         bindings["text"] = text
     return IRNode(
         role,

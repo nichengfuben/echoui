@@ -6,8 +6,8 @@
 |--------|------|----------|
 | 0 | 通用性保证 | `echoui/raw.py`, `echoui/bridge/`, `examples/05_escape_layer` |
 | 1 | SSS 范式 | `app.py`, `screen.py`, `stage.py`, `camera.py`, `sprite.py` |
-| 2 | 架构 | `echoui/compiler/`, `echoui/runtime/` |
-| 3 | 性能模型 | `echoui/reactive.py`, `scripts/benchmark_reactive.py` |
+| 2 | 架构 | `echoui/compiler/`, `echoui/runtime/web/` |
+| 3 | 性能模型 | `echoui/reactive.py`, `echoui/runtime/web/core.js`, `scripts/benchmark_reactive.py` |
 | 4–5 | 原语 / Sprite API | `sprite.py`, `chain.py` |
 | 6 | 内建角色 | `layout.py`, `roles.py`, `from echoui import chart, map, …` |
 | 7–8 | 布局 / 样式 | `layout.py`, `style.py` |

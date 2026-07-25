@@ -2,15 +2,33 @@
 
 One **Screen–Stage–Sprite** paradigm compiles to Web, desktop, mobile, TUI, and GUI.
 
-**Version:** 0.9.0 · **License:** MIT · **Docs:** [docs/api/INDEX.md](docs/api/INDEX.md)
+**Version:** 1.0.0 · **License:** MIT · **PyPI:** `pip install echoui` · **GitHub:** [nichengfuben/echoui](https://github.com/nichengfuben/echoui)
 
-## Quick Start
+## 像 npm 一样用
+
+| npm | EchoUI |
+|-----|--------|
+| `npm install -g vite` | `pip install echoui[web]` |
+| `npm create vite@latest my-app` | `echoui new my-app` |
+| `npm run build` | `echoui build --target web` |
+| `npm run dev` | `echoui dev --port 8765` |
 
 ```bash
-pip install -e ".[web,dev]"
+pip install echoui[web]
+echoui new my-app
+cd my-app
+pip install -e .          # 安装项目依赖（含 echoui）
+echoui build --target web
+echoui dev --port 8765
 ```
 
-Create `main.py`:
+PyPI 尚未发布 **1.0.0** 时，可从 GitHub 安装：
+
+```bash
+pip install "echoui[web] @ git+https://github.com/nichengfuben/echoui.git"
+```
+
+## Quick Start（已有 main.py）
 
 ```python
 from echoui import App, Screen, Store, col, text, button
@@ -30,41 +48,25 @@ class Counter(Screen):
 app = App(screens=[Counter], initial="Counter")
 ```
 
-Build and run:
-
 ```bash
 echoui build --target web
-echoui dev --target web --port 7999
+echoui dev --port 8765
 ```
-
-Open http://127.0.0.1:7999 — click **+1** and the count increments.
 
 ## CLI
 
 | Command | Description |
 |---------|-------------|
-| `echoui new [name]` | Scaffold a counter project |
-| `echoui dev --target web` | Dev server with hot reload |
-| `echoui build --target web\|static\|tui\|desktop\|gui` | Compile for target |
-| `echoui check` | Validate project |
-| `echoui version` | Print version |
+| `echoui new [name]` | 脚手架（main.py + pyproject.toml） |
+| `echoui dev` | 开发服务器（watch + 静态服务） |
+| `echoui build --target web\|static\|tui\|desktop\|gui\|android\|ios` | 编译 |
+| `echoui preview` | 预览已 build 的 dist |
+| `echoui check` | 校验项目 |
+| `echoui version` | 版本 |
 
-## Quality Gate
+## 示例
 
-```bash
-ruff check .
-mypy echoui
-pytest -q
-python achecker.py
-python -m build
-twine check dist/*
-```
-
-## Testing
-
-```bash
-pytest -q
-```
+`examples/` 含 hello、counter、跑酷 `06_runner`、全功能 dashboard `07_full_web` 等。
 
 ## License
 

@@ -17,24 +17,29 @@ jobs:
           python-version: "3.12"
       - name: Install EchoUI
         run: pip install -e ".[web,dev]"
-      - name: Build web bundle for mobile shell
+      - name: Quality gate
+        run: |
+          pytest -q
+          python achecker.py
+      - name: Build runner web bundle for iOS shell
         run: |
           python - <<'PY'
           import importlib.util
           from pathlib import Path
-          spec = importlib.util.spec_from_file_location("demo", "examples/01_hello_web/main.py")
+          root = Path("examples/06_runner")
+          spec = importlib.util.spec_from_file_location("runner", root / "main.py")
           mod = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(mod)
-          out = Path("dist/ios-web")
-          mod.app.compile(target="web", out_dir=str(out))
-          assert (out / "index.html").exists()
-          print("web bundle ready for iOS WebView shell")
+          out = Path("dist/ios/runner")
+          mod.app.compile(target="ios", out_dir=str(out))
+          assert (out / "web" / "index.html").exists()
+          print("iOS web bundle ready for WKWebView shell")
           PY
-      - name: Package placeholder IPA metadata
+      - name: Package iOS web bundle artifact
         run: |
           mkdir -p dist/ios
-          echo "EchoUI iOS shell uses web bundle + WKWebView template" > dist/ios/README.txt
-          tar -czf dist/echoui-ios-web-bundle.tar.gz dist/ios-web dist/ios
+          echo "EchoUI iOS shell: WKWebView + compiled web bundle (06_runner)" > dist/ios/README.txt
+          tar -czf dist/echoui-ios-web-bundle.tar.gz dist/ios
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

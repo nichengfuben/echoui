@@ -42,6 +42,18 @@ class Camera:
             self.y += (ty - self.y) * self.lerp
         if self._shake_t > 0:
             self._shake_t = max(0, self._shake_t - dt)
+        if self.bounds:
+            bx0, by0, bx1, by1 = self.bounds
+            self.x = max(bx0, min(bx1, self.x))
+            self.y = max(by0, min(by1, self.y))
+
+    def shake_offset(self) -> tuple[float, float]:
+        if self._shake_t <= 0:
+            return 0.0, 0.0
+        import random
+
+        m = self._shake_mag * (self._shake_t / max(self._shake_t, 0.001))
+        return random.uniform(-m, m), random.uniform(-m, m)
 
     def to_dict(self) -> dict[str, Any]:
         return {

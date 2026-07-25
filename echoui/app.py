@@ -27,7 +27,16 @@ class App:
     def switch_screen(self, name: str, effect: str = "none", duration: float = 0.3) -> None:
         if name not in self.screens:
             raise KeyError(name)
+        prev = self._current
         self._current = name
+        from echoui.events import get_handlers
+
+        leave = get_handlers(self.screens[prev]).get("screen_leave")
+        enter = get_handlers(self.screens[name]).get("screen_enter")
+        if leave:
+            leave()
+        if enter:
+            enter()
 
     def build_ir(self) -> Dict[str, Any]:
         reset_id_gen()

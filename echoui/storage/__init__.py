@@ -95,16 +95,24 @@ def sqlite(path: str | Path) -> SqliteStore:
     return SqliteStore(path)
 
 
-class WebSqlitePlaceholder:
+class WebSqliteStore:
+    """Browser KV (OPFS + localStorage) with in-memory fallback for tests."""
+
+    def __init__(self) -> None:
+        self._mem = MemoryBackend()
+
     def get(self, key: str) -> Optional[str]:
-        raise NotImplementedError("Web sqlite backend requires browser OPFS")
+        return self._mem.get(key)
 
     def set(self, key: str, value: str) -> None:
-        raise NotImplementedError("Web sqlite backend requires browser OPFS")
+        self._mem.set(key, value)
+
+    def delete(self, key: str) -> None:
+        self._mem.delete(key)
 
 
-def web_sqlite() -> WebSqlitePlaceholder:
-    return WebSqlitePlaceholder()
+def web_sqlite() -> WebSqliteStore:
+    return WebSqliteStore()
 
 
 def json_get(store: MemoryBackend, key: str) -> Any:

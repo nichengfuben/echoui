@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.0.0 — 终态兑现 (2026-07-25)
+
+- **Web 完全兑现**：Chart.js / MapLibre 生产级、OPFS storage、WebGPU、SSR resume 水合
+- **Runtime 扩展**：`storage.js` + `webgpu.js` + `widgets.js` 并入 `runtime.js`（~12KB）
+- **八示例** web+static 全 build（含 `07_full_web` dashboard、`08_media` 音视频）
+- **101+ pytest** + achecker 全绿；§34 compile-local 不变量硬校验
+- iOS CI workflow（`ios-build.yml`）+ 诚实边界文档（PyPI / 商店签名）
+
+## 1.0.0 — Compile-local 终态 (PLAN §34)
+
+- **架构终态**：所有 UI 事件/帧循环在 `echoui build` 时编译为本地 JS；客户端零 Python、零 `/api/*` 往返
+- `emit_actions` 复用 `emit_frame` AST→JS 管线；`validate_local_compile` build 硬失败
+- `router.navigate('/path')` 编译为 `{k:"nav", href:"…html"}`；多屏 app 合并 handler 校验
+- Web/Static 多屏输出 `index.html` + `{screen}.html` + `screens.json`
+- `core.js` 纯本地 Signal + runA + localF + nav；dev = watchfiles + 静态服务
+- 六示例 web+static 全 build；collab/i18n/overlay/router/cli 补测
+- `docs/api` 合并为 7 文件（achecker 合规）
+
+## 0.9.4
+
+- Fix Web SSR: inject GPU canvas + dimensions for free-mode stage children (runner game visible)
+- Fix `frame_script` spawn loop: obstacles now spawn at x=660 in static/local frame mode
+- GPU runtime fallback: if canvas missing, unhide DOM sprites instead of blank stage
+- **SSS alignment (PLAN §1/§4):** game screens use `layout="free"` and `build() → stage(...)`; HUD/buttons are Sprites inside Stage, not `col()` wrapping stage; web emit collapses free Screen→Stage to single stage surface
+- Examples `03_game_free_mode`, `04_multi_screen_game`, `06_runner` updated to SSS tree
+- Tests: 66 passed; SSS tree assertion + GPU canvas/spawn checks
+
+## 0.9.3
+
+- Web reactive runtime: Signal store, text/style bindings, local actions, `/api/action` + `/api/frame` without full reload
+- `@on("frame")` / `@on("keydown", key=...)` wired through compiler keymap and dev server dispatch
+- DOM event delegation: click, dblclick, hover, focus/blur, wheel, contextmenu, drag (compiler + `core.js`)
+- Static builds: client-side `frame_script` local rAF loop (no server); ships `runtime.js`
+- GPU free-mode: Canvas2D batched rendering for `stage layout=free` sprites
+- Advanced roles: chart (bar canvas), map (placeholder), gantt (timeline bars) web emit
+- Desktop target: Qt widget tree from lowered IR; Android/iOS webview asset bundles
+- Sprite motion/sensing, MotionChain, Stage/Camera, frame testing via `tick()`
+- Example `06_runner` — 2D endless runner on Store + stage free mode
+
 ## 0.9.2
 
 - Align public API with PLAN.md §6: export 50+ built-in role factories from `echoui`

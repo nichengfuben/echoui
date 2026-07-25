@@ -39,7 +39,15 @@ def os_api() -> Any:
     raise UnsupportedCapability("os_api is not available on this target")
 
 
-def gpu_api() -> Any:
-    from echoui.exceptions import UnsupportedCapability
+class WebGpuApi:
+    """WebGPU bridge — runtime in ``runtime/web/webgpu.js``."""
 
-    raise UnsupportedCapability("gpu_api is not available on this target")
+    def backend(self) -> str:
+        return "webgpu"
+
+    def supports(self) -> bool:
+        return True
+
+
+def gpu_api() -> WebGpuApi:
+    return WebGpuApi()
