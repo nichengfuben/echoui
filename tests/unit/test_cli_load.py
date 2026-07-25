@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from echoui.cli import _load_app
+from watchfiles import Change
+
+from echoui.cli import _dev_watch_filter, _load_app
+
+
+def test_dev_watch_filter_ignores_dist():
+    filt = _dev_watch_filter()
+    assert filt(Change.modified, r"game\dist\web\index.html") is False
+    assert filt(Change.modified, r"game\main.py") is True
 
 
 def test_load_app_multi_file_example():

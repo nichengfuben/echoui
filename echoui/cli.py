@@ -269,6 +269,15 @@ def _load_app(entry: str) -> Any:
     return mod.app
 
 
+def _dev_watch_filter():
+    """Ignore build output dirs so compile → write dist does not retrigger watch."""
+    from watchfiles import DefaultFilter
+
+    filt = DefaultFilter()
+    filt._ignore_dirs = filt._ignore_dirs | {"dist", "build", ".echoui"}
+    return filt
+
+
 def dev_server(app: Any, *, entry: str = "main.py", host: str = "0.0.0.0", port: int = 7999) -> None:
     """Serve compiled web assets with hot rebuild — no Python runtime for UI events."""
     import socket
@@ -288,7 +297,9 @@ def dev_server(app: Any, *, entry: str = "main.py", host: str = "0.0.0.0", port:
     rebuild()
 
     def watcher() -> None:
-        for _changes in watch(watch_dir, raise_interrupt=False):
+        for _changes in watch(
+            watch_dir, watch_filter=_dev_watch_filter(), raise_interrupt=False
+        ):
             try:
                 rebuild()
                 print("Rebuilt dist/web", file=sys.stderr, flush=True)
