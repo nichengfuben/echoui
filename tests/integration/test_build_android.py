@@ -42,16 +42,12 @@ def test_android_gradle_project_structure(tmp_path):
     assert (project / "app" / "src" / "main" / "java" / "com" / "echoui" / "app" / "MainActivity.java").is_file()
 
 
-def test_android_assemble_debug_if_sdk():
+def test_android_assemble_debug_if_sdk(tmp_path):
     sdk = os.environ.get("ANDROID_SDK_ROOT") or os.environ.get("ANDROID_HOME")
     if not sdk or not Path(sdk).is_dir():
         pytest.skip("ANDROID_SDK_ROOT not set")
     app = _load_hello()
-    base = Path(__file__).resolve().parents[2] / "dist" / "test-android-ci"
-    if base.exists():
-        import shutil
-
-        shutil.rmtree(base, ignore_errors=True)
+    base = tmp_path / "android-ci"
     build_target(app, target="android", out_dir=str(base))
     project = Path(build_android_gradle(app, out_dir=str(base), sdk_root=sdk))
     gradlew = project / "gradlew.bat" if sys.platform == "win32" else project / "gradlew"

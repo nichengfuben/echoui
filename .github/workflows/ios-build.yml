@@ -16,7 +16,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install EchoUI
-        run: pip install -e ".[web,dev]"
+        run: pip install -e ".[web,dev]" echotools tree-sitter tree-sitter-language-pack
+      - name: Prefetch tree-sitter parsers
+        run: python -c "from tree_sitter_language_pack import download; download(['python','javascript'])"
       - name: Quality gate
         run: |
           pytest -q

@@ -39,6 +39,8 @@ jobs:
       - name: achecker
         run: python achecker.py
       - name: build
-        run: python -m build
+        run: |
+          rm -rf dist
+          python -m build
       - name: twine check
-        run: twine check dist/*
+        run: twine check dist/echoui-*
