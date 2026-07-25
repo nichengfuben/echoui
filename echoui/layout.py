@@ -75,6 +75,15 @@ def scroll(child: Any, max_height: int = 400) -> IRNode:
     return IRNode("scroll", props={"max_height": max_height}, children=normalize_children([child]))
 
 
+def print_view(*children: Any, **extra: Any) -> IRNode:
+    """Print-only region — visible in @media print."""
+    return IRNode(
+        "box",
+        props={"role": "print_view", "class": "e-print-view", **extra},
+        children=normalize_children(list(children)),
+    )
+
+
 def _role(
     role: str,
     *children: Any,

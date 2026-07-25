@@ -53,6 +53,9 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("doctor", help="Check toolchain and optional deps")
 
+    devtools_p = sub.add_parser("devtools", help="Print signal/bindings graph for entry")
+    devtools_p.add_argument("entry", nargs="?", default="main.py")
+
     add_p = sub.add_parser("add", help="Register a plugin module")
     add_p.add_argument("plugin", help="Plugin module path")
 
@@ -78,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_test(args.pytest_args)
     if args.cmd == "doctor":
         return cmd_doctor()
+    if args.cmd == "devtools":
+        return cmd_devtools(getattr(args, "entry", "main.py"))
     if args.cmd == "add":
         return cmd_add(args.plugin)
     parser.print_help()
@@ -250,6 +255,7 @@ def cmd_doctor() -> int:
         ("aiohttp", "web"),
         ("textual", "tui"),
         ("PySide6", "desktop"),
+        ("pycrdt", "collab"),
     ):
         try:
             __import__(mod)
@@ -259,6 +265,25 @@ def cmd_doctor() -> int:
             ok = False
     print("doctor:", "ok" if ok else "some optional deps missing")
     return 0 if ok else 1
+
+
+def cmd_devtools(entry: str) -> int:
+    from echoui.compiler.analyzer import analyze
+    from echoui.compiler.optimizer import optimize
+    from echoui.compiler.parser import parse_app
+    from echoui.state import serialize_signals
+
+    app = _load_app(entry)
+    parsed = optimize(analyze(parse_app(app)))
+    signals = serialize_signals()
+    print("=== signals ===")
+    for key, val in sorted(signals.items()):
+        print(f"  {key} = {val!r}")
+    print("=== reactive bindings ===")
+    for b in parsed.get("reactive_bindings", []):
+        print(f"  {b.get('t')} node={b.get('n')} deps={b.get('d', [])}")
+    print(f"static_nodes={len(parsed.get('static_nodes', []))} optimized={parsed.get('optimized')}")
+    return 0
 
 
 def cmd_add(plugin: str) -> int:

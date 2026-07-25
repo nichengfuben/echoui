@@ -50,7 +50,8 @@ body{font-family:system-ui,sans-serif;background:#000;color:#1a1a1a}
 .e-avatar-fallback{display:inline-flex;align-items:center;justify-content:center;background:#6200EE;color:#fff}
 .e-field{display:flex;flex-direction:column;gap:4px;margin:8px 0}
 .e-input,.e-textarea,.e-select{padding:8px;border:1px solid #ccc;border-radius:6px}
-@media print{.no-print{display:none!important}body{background:#fff;color:#000}}
+@media print{.no-print{display:none!important}body{background:#fff;color:#000}.e-print-view{display:block!important}}
+.e-print-view{display:none}
 """
 
 

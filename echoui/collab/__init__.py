@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from echoui.collab._core import CRDTMap, LWWRegister, Session, SyncClient, SyncRelay
+from echoui.collab.doc import Awareness, Doc, Presence
 from echoui.collab.pycrdt_backend import PyCRDTSession, merge_updates
 
 __all__ = [
@@ -13,4 +14,7 @@ __all__ = [
     "SyncClient",
     "PyCRDTSession",
     "merge_updates",
+    "Doc",
+    "Presence",
+    "Awareness",
 ]

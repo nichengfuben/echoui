@@ -58,3 +58,28 @@ class DataTable:
             self.sort_key = key
             self.sort_asc = True
         self.rows.sort(key=lambda r: r.get(key, ""), reverse=not self.sort_asc)
+
+
+@dataclass
+class TreeNode:
+    label: str
+    children: List["TreeNode"] = field(default_factory=list)
+    expanded: bool = True
+
+
+@dataclass
+class Tree:
+    roots: List[TreeNode] = field(default_factory=list)
+
+    def flatten(self) -> List[tuple[int, str]]:
+        out: List[tuple[int, str]] = []
+
+        def walk(node: TreeNode, depth: int) -> None:
+            out.append((depth, node.label))
+            if node.expanded:
+                for child in node.children:
+                    walk(child, depth + 1)
+
+        for root in self.roots:
+            walk(root, 0)
+        return out

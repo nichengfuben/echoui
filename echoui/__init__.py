@@ -20,6 +20,7 @@ from echoui.layout import (
     input_field,
     link,
     paragraph,
+    print_view,
     row,
     scroll,
     spacer,
@@ -36,7 +37,7 @@ from echoui.stage import stage as stage_fn
 from echoui.state import Store
 from echoui.style import css, keyframes_css, set_theme, style, theme
 
-__version__ = "1.2.11"
+__version__ = "1.2.12"
 
 # Built-in role factories — resolved via layout module
 _BUILTIN_ROLE_NAMES = (
@@ -139,6 +140,7 @@ __all__ = [
     "input_field",
     "box",
     "scroll",
+    "print_view",
     "image",
     "file_input",
     "link",

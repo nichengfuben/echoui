@@ -85,12 +85,18 @@ class TTS:
 
     def __init__(self, language: str = "en") -> None:
         self.language = language
+        self._queue: List[str] = []
 
     async def speak_until_done(self, text: str) -> None:
-        self._last = text
+        self._queue.append(text)
 
     async def speak(self, text: str) -> None:
         await self.speak_until_done(text)
+
+    def compile_ops(self) -> List[Dict[str, Any]]:
+        ops = [{"op": "tts", "text": t, "lang": self.language} for t in self._queue]
+        self._queue.clear()
+        return ops
 
 
 async def listen(*, language: str = "en", seconds: float = 5.0) -> str:

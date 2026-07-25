@@ -1,6 +1,6 @@
 [project]
 name = "echoui"
-version = "1.2.11"
+version = "1.2.12"
 description = "Universal Python-first UI framework — one Screen-Stage-Sprite paradigm compiles to Web, desktop, mobile, TUI, and GUI, with a universal escape layer guaranteeing capability parity with any framework."
 authors = [{ name = "nichengfuben", email = "nichengfuben@outlook.com" }]
 license = { text = "MIT" }

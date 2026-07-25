@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.12 — v0.9 生态终态 (2026-07-25)
+
+- **collab**：`Doc` / `Presence` / `Awareness` + SyncRelay 广播
+- **platform**：内存 clipboard/notifications/share；桌面 `dialog_open_file` → `files.pick`
+- **a11y/print**：`print_view` + `@media print` CSS；`skip_link` / `focus_trap`
+- **CLI**：`echoui devtools` 信号/绑定图；`doctor` 含 collab 依赖
+- **optimizer**：binding 去重（保留 analyzer 静态子树标记）
+- **audio.TTS**：`compile_ops()` 队列
+
 ## 1.2.11 — Sprite 全量运动/感知 + 持久化 + 响应式 (2026-07-25)
 
 - **Sprite**：`point_toward` / `bounce_on_edge` / `flip_*` / `orbit` / `say` / `split_to` / `image()` 等
