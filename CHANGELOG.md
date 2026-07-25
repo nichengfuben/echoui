@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 — 跑酷 GPU 颜色修复 (2026-07-25)
+
+- **free-mode GPU**：`image`/控件不再批渲染为 `#888` 灰块，仅 `box`+`background` 进 canvas
+- **Stage 文字**：`.e-stage-inner .e-text` 白字+阴影，分数可读
+- 新增 `tests/unit/test_free_gpu.py`
+
 ## 1.2.1 — 全量 role emit / TUI IR / 数据与协作 (2026-07-25)
 
 - **`emit_roles`**：50+ 内建 role 统一 HTML emit（virtual_list、stepper、radio_group 等）

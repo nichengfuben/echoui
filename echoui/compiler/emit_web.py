@@ -26,6 +26,7 @@ body{font-family:system-ui,sans-serif;background:#000;color:#1a1a1a}
 .e-free{position:absolute}
 .e-gpu{position:absolute;left:0;top:0;pointer-events:none;z-index:1}
 .e-stage-inner .e-btn,.e-stage-inner .e-button,.e-stage-inner .e-free[class*="text"]{z-index:2;pointer-events:auto}
+.e-stage-inner .e-text{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .e-gpu-hide{visibility:hidden}
 .e-canvas{display:block}
 .e-chart,.e-map,.e-gantt{display:block}

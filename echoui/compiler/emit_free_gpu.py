@@ -58,6 +58,11 @@ def _gpu_node(node: Any, bound_xy: Dict[str, Dict[str, str]]) -> Optional[Dict[s
     props = node.props
     if props.get("layout") == "free" and node.role == "stage":
         return None
+    # Images/text/controls stay DOM-only — batching them as #888 rects changes game colors.
+    if node.role in ("image", "text", "button", "input", "file_input", "video", "audio_player"):
+        return None
+    if "background" not in props:
+        return None
     w = props.get("width")
     h = props.get("height")
     if not w or not h:
