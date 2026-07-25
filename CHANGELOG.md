@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.8 — CI PyPI 自动化 + 文档图鉴扩展 (2026-07-25)
+
+- **GitHub Actions**：`publish.yml` — tag `v*` 自动 twine 发布（`PYPI_API_TOKEN`）
+- **docs-src**：媒体上传、Stage/overlay、forms/data/i18n 图鉴条目（9 条 API 索引）
+- **PyPi 生态**：`X:\Project\PyPi\scripts\sync_pypi_token.ps1` 统一同步各 SDK `.env` 与 GH secret
+
 ## 1.2.7 — Web compile-local 终态 (2026-07-25)
 
 - **终态范围**：compile-local Web 栈闭环（§34）；127 pytest + ruff + mypy + achecker 全绿

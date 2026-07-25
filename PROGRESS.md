@@ -5,9 +5,9 @@
 
 ## 当前阶段
 
-**v1.2.7 — Web compile-local 终态**（2026-07-25）
+**v1.2.8 — Web 终态 + CI 发布闭环**（2026-07-25）
 
-PyPI **1.2.7**；GitHub **v1.2.7**。compile-local Web 栈闭环；多端 native 仍为 partial。
+PyPI **1.2.8**；GitHub **Publish workflow** + `PYPI_API_TOKEN` 已同步。
 
 ---
 
@@ -15,12 +15,13 @@ PyPI **1.2.7**；GitHub **v1.2.7**。compile-local Web 栈闭环；多端 native
 
 | 项 | 状态 | 证据 |
 |----|:----:|------|
-| `pip install echoui` | [x] | PyPI 1.2.7 |
-| `pytest -q` | [x] | 127 passed |
+| `pip install echoui` | [x] | PyPI 1.2.8 |
+| `pytest -q` | [x] | 128 passed |
 | `mypy echoui` | [x] | 84 files |
 | `ruff check echoui tests` | [x] | 全绿 |
 | `python achecker.py` | [x] | 全绿 |
-| `python -m build` + `twine check` | [x] | 1.2.7 PASSED |
+| `python -m build` + `twine check` | [x] | 1.2.8 PASSED |
+| tag push → PyPI CI | [x] | publish.yml + PYPI_API_TOKEN |
 | `echoui new` + `build --target web` | [x] | pip workflow 测 |
 | 九示例 web+static build | [x] | test_build_all_examples |
 | `echoui dev` 热重建无循环 | [x] | dist/ 忽略 + 1.2.6 |
@@ -66,7 +67,8 @@ PyPI **1.2.7**；GitHub **v1.2.7**。compile-local Web 栈闭环；多端 native
 
 ### P3 — 生态
 
-- [ ] docs-src 50+ role 四件套图鉴
+- [x] docs-src 核心 API 图鉴（9 条：media/stage/ecosystem）
+- [ ] docs-src 50+ role 全量四件套
 - [ ] Playwright escape+signal 集成测
 - [ ] pycrdt 网络协作（当前 LWW SyncRelay）
 
@@ -75,6 +77,7 @@ PyPI **1.2.7**；GitHub **v1.2.7**。compile-local Web 栈闭环；多端 native
 ## 审计日志
 
 ```
+2026-07-25 v1.2.8 CI publish + docs 图鉴 + PyPi token 全仓同步
 2026-07-25 v1.2.7 Web compile-local 终态：127 pytest；file_input/dev watch/跑酷造型；PyPI+GH
 2026-07-25 v1.2.6 dev watch 忽略 dist 修复重建循环
 2026-07-25 v1.2.5 file_input 工厂覆盖修复 + 跑酷造型切换

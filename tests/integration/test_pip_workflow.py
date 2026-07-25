@@ -8,6 +8,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+
 def _run(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
