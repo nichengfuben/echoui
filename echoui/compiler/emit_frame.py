@@ -101,6 +101,9 @@ def _lookup_callable(fn: Callable[..., Any], name: str) -> Optional[Callable[...
 
 
 def _fn_source(fn: Callable[..., Any]) -> Optional[str]:
+    injected = getattr(fn, "__echoui_source__", None)
+    if isinstance(injected, str) and injected.strip():
+        return injected
     try:
         lines, _ = inspect.getsourcelines(fn)
         return textwrap.dedent("".join(lines)).strip()

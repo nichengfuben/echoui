@@ -68,7 +68,7 @@ class Store(metaclass=StoreMeta):
     def _init_signals(self) -> None:
         self._signals = {}
         cls_name = self.__class__.__name__
-        hints = getattr(self, "__annotations__", {})
+        hints = getattr(self.__class__, "__annotations__", {})
         for name in hints:
             if name.startswith("_"):
                 continue

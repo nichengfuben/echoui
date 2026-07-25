@@ -110,6 +110,12 @@ def cmd_build(entry: str, *, target: str, out: str | None, package: bool = False
             print(f"Packaged desktop -> {pkg}")
         else:
             print("package: pip install echoui[desktop] then re-run with --package")
+    if package and target == "android":
+        pkg = _package_android(app, out_dir)
+        if pkg:
+            print(f"Packaged android -> {pkg}")
+        else:
+            print("package: set ANDROID_SDK_ROOT and install Android SDK build-tools")
     print(f"Built {target} -> {path}")
     return 0
 
@@ -141,6 +147,30 @@ def _package_desktop(out_dir: str) -> str | None:
     )
     exe = dist / ("echoui-app.exe" if sys.platform.startswith("win") else "echoui-app")
     return str(exe) if exe.exists() else None
+
+
+def _package_android(app: Any, out_dir: str) -> str | None:
+    import os
+    import subprocess
+
+    sdk = os.environ.get("ANDROID_SDK_ROOT") or os.environ.get("ANDROID_HOME")
+    if not sdk:
+        return None
+    from echoui.targets.android_gradle import build_android_gradle
+
+    project = Path(build_android_gradle(app, out_dir=out_dir, sdk_root=sdk))
+    gradlew = project / ("gradlew.bat" if sys.platform == "win32" else "gradlew")
+    if not gradlew.is_file():
+        return None
+    subprocess.run(
+        [str(gradlew), "assembleDebug", "--no-daemon"],
+        cwd=project,
+        check=True,
+        stdin=subprocess.DEVNULL,
+    )
+    apk_dir = project / "app" / "build" / "outputs" / "apk" / "debug"
+    apks = sorted(apk_dir.glob("*.apk"))
+    return str(apks[0]) if apks else None
 
 
 def cmd_dev(entry: str, *, host: str, port: int, target: str) -> int:

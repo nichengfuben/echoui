@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.10 — 造型 API (2026-07-25)
+
+- **`costume()` / `bind_costumes()`**：命名造型 + `switch["name"]` / `next_costume` / `save_costume`（compile-local）
+- **`Sprite`**：`costumes`、`costume_src`、`switch_costume(name|idx)`、`next_costume()`
+- 跑酷示例移除造型 UI；演示在 `examples/08_media`
+- 编译器：`__echoui_source__` + 仅 `<` 比较的可编译 handler 生成
+
+## 1.2.9 — 终态 (2026-07-25)
+
+- **Desktop**：`test_build_desktop` + Windows PyInstaller `.exe` 冒烟
+- **Android**：Gradle 工程生成 + `ANDROID_SDK_ROOT` 时 `assembleDebug` APK
+- **iOS**：`test_build_ios` + CI `ios-build.yml` web bundle artifact
+- **Playwright**：counter 点击 + escape 层加载集成测
+- **collab**：`echoui[collab]` pycrdt `PyCRDTSession` + merge_updates
+- **docs**：82 role 全量图鉴 `role-catalog.md`（`scripts/gen_role_docs.py`）
+- **CLI**：`echoui build --target android --package` → APK（需 SDK）
+
 ## 1.2.8 — CI PyPI 自动化 + 文档图鉴扩展 (2026-07-25)
 
 - **GitHub Actions**：`publish.yml` — tag `v*` 自动 twine 发布（`PYPI_API_TOKEN`）

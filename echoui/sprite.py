@@ -84,6 +84,18 @@ class Sprite:
         self._children: List["Sprite"] = []
         self._effects: Dict[str, float] = {}
         self._destroyed = False
+        self._costumes: Dict[str, str] = {}
+        self.current_costume = ""
+        cls_costumes = getattr(self.__class__, "costumes", None)
+        if cls_costumes:
+            for item in cls_costumes:
+                if hasattr(item, "name") and hasattr(item, "src"):
+                    self._costumes[item.name] = item.src
+                elif isinstance(item, tuple) and len(item) == 2:
+                    self._costumes[str(item[0])] = str(item[1])
+            if self._costumes and not self.current_costume:
+                default = getattr(self.__class__, "current_costume", "")
+                self.current_costume = default if default in self._costumes else next(iter(self._costumes))
 
     def build(self) -> Union["IRNode", "Sprite", List[Any], None]:
         return IRNode(self.role)
@@ -178,6 +190,34 @@ class Sprite:
 
     def clear_effects(self) -> "Sprite":
         self._effects.clear()
+        return self
+
+    @property
+    def costume_src(self) -> str:
+        if self.current_costume and self.current_costume in self._costumes:
+            return self._costumes[self.current_costume]
+        if self._costumes:
+            return next(iter(self._costumes.values()))
+        return ""
+
+    def switch_costume(self, name_or_idx: str | int) -> "Sprite":
+        if isinstance(name_or_idx, int):
+            keys = list(self._costumes.keys())
+            if 0 <= name_or_idx < len(keys):
+                self.current_costume = keys[name_or_idx]
+        elif name_or_idx in self._costumes:
+            self.current_costume = str(name_or_idx)
+        return self
+
+    def next_costume(self) -> "Sprite":
+        if not self._costumes:
+            return self
+        keys = list(self._costumes.keys())
+        if self.current_costume not in keys:
+            self.current_costume = keys[0]
+            return self
+        idx = (keys.index(self.current_costume) + 1) % len(keys)
+        self.current_costume = keys[idx]
         return self
 
     def move_to_front(self) -> "Sprite":

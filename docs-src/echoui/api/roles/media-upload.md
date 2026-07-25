@@ -37,6 +37,44 @@ def jump(self, _):
 
 构建时写入 client cfg；`audio.js` 在浏览器播放，无 Python 往返。
 
-## 造型切换（跑酷示例）
+## 造型切换（`echoui.costume`）
 
-- `save_player_costume()` / `cycle_player_costume()` — 双槽位，须模块级函数（非 lambda）以通过 `validate_local_compile`。
+框架内置 API，**不要**在游戏逻辑里手写槽位。
+
+### Sprite 声明式（运行时 / 编译）
+
+```python
+from echoui import Sprite
+from echoui.costume import costume
+
+class Player(Sprite):
+    costumes = [costume("idle", "idle.png"), costume("run", "run.png")]
+    current_costume: str = "idle"
+    def build(self):
+        return self.image(self.costume_src)
+
+player.switch_costume("run")   # 或 switch_costume(1)
+player.next_costume()
+```
+
+### Store + compile-local（上传 / 命名切换）
+
+```python
+from echoui.costume import CostumeFieldsMixin, bind_costumes, costume
+
+class MediaStore(Store, CostumeFieldsMixin):
+    sprite_url: str = ""
+
+controls = bind_costumes(
+    MediaStore,
+    [costume("idle", ""), costume("run", "")],
+    url="sprite_url",
+)
+
+image(lambda: store.sprite_url, width=128, height=128)
+button("Next", on_click=controls.next_costume)
+button("Run", on_click=controls.switch["run"])
+button("Save", on_click=controls.save_costume)  # 上传后追加槽位
+```
+
+示例：`examples/08_media`。跑酷仅保留单张 `player_url` 上传，不含造型 UI。

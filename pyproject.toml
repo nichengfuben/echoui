@@ -1,6 +1,6 @@
 [project]
 name = "echoui"
-version = "1.2.8"
+version = "1.2.10"
 description = "Universal Python-first UI framework — one Screen-Stage-Sprite paradigm compiles to Web, desktop, mobile, TUI, and GUI, with a universal escape layer guaranteeing capability parity with any framework."
 authors = [{ name = "nichengfuben", email = "nichengfuben@outlook.com" }]
 license = { text = "MIT" }
@@ -22,6 +22,7 @@ tui = ["rich>=13.7.1", "textual>=0.58.0"]
 gui = ["PySide6>=6.7.0"]
 data = ["pyarrow>=15.0.2"]
 physics = ["pymunk>=7.0.0"]
+collab = ["pycrdt>=0.8.0"]
 dev = [
     "pytest>=8.1.1",
     "pytest-asyncio>=0.23.6",
@@ -32,7 +33,7 @@ dev = [
     "hatchling",
 ]
 dev-extended = ["pytest-qt>=4.4.0", "playwright>=1.43.0"]
-all = ["echoui[web,fastapi,desktop,tui,gui,data,physics,dev,dev-extended]"]
+all = ["echoui[web,fastapi,desktop,tui,gui,data,physics,collab,dev,dev-extended]"]
 
 [project.urls]
 Homepage = "https://github.com/nichengfuben/echoui"

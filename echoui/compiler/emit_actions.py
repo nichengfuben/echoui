@@ -69,6 +69,9 @@ def _compile_handler_body(handler: Callable[..., Any]) -> Optional[Dict[str, Any
 
 
 def _handler_source(handler: Callable[..., Any]) -> Optional[str]:
+    injected = getattr(handler, "__echoui_source__", None)
+    if isinstance(injected, str) and injected.strip():
+        return injected
     try:
         lines, _ = inspect.getsourcelines(handler)
         src = textwrap.dedent("".join(lines)).strip()

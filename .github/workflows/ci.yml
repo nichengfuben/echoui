@@ -30,6 +30,12 @@ jobs:
         run: mypy echoui
       - name: pytest
         run: pytest -q
+      - name: Install Playwright browser (optional integration)
+        run: python -m playwright install chromium
+        continue-on-error: true
+      - name: pytest playwright
+        run: pytest tests/integration/test_playwright_web.py -q
+        continue-on-error: true
       - name: achecker
         run: python achecker.py
       - name: build

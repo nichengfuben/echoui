@@ -4,6 +4,7 @@ from typing import Any
 
 from echoui.app import App
 from echoui.clone import clone_pool
+from echoui.costume import CostumeFieldsMixin, bind_costumes, costume, make_costume_handlers
 from echoui.events import on
 from echoui.layout import (
     box,
@@ -35,7 +36,7 @@ from echoui.stage import stage as stage_fn
 from echoui.state import Store
 from echoui.style import css, keyframes_css, set_theme, style, theme
 
-__version__ = "1.2.8"
+__version__ = "1.2.10"
 
 # Built-in role factories — resolved via layout module
 _BUILTIN_ROLE_NAMES = (
@@ -130,6 +131,10 @@ __all__ = [
     "on",
     "native_component",
     "clone_pool",
+    "CostumeFieldsMixin",
+    "bind_costumes",
+    "costume",
+    "make_costume_handlers",
     "input",
     "input_field",
     "box",
