@@ -11,7 +11,7 @@ from echoui.stage import Stage
 from echoui.state import Store
 from echoui.style import style
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 __all__ = [
     "App",

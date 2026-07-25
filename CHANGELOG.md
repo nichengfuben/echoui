@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+- Fix TUI build JSON serialization for reactive lambdas
+- Add `python -m echoui` entry via `__main__.py`
+- Bootstrap modules, examples `01_hello_web` / `03_game_free_mode`, visual/a11y tests
+- docs-src API catalog entries; iOS CI workflow; reactive benchmark script
+
 ## 0.9.0
 
 - Release-ready packaging: version aligned across pyproject, package, docs, and CHANGELOG

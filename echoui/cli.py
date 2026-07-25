@@ -142,3 +142,7 @@ class Counter(Screen):
 
 app = App(screens=[Counter], initial="Counter")
 '''
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

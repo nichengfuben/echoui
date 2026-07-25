@@ -1,5 +1,6 @@
-from echoui import App, Screen, Sprite, Stage, Store, button, col, row, text
+from echoui import App, Screen, Sprite, Store, button, col, row, text
 from echoui.router import Router
+from echoui.stage import stage
 
 
 class GameStore(Store):
@@ -30,7 +31,7 @@ class Game(Screen):
 
     def build(self):
         return col(
-            Stage(
+            stage(
                 Player().move_to(100, 200),
                 width=800,
                 height=600,

@@ -1,0 +1,42 @@
+name: iOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install EchoUI
+        run: pip install -e ".[web,dev]"
+      - name: Build web bundle for mobile shell
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("demo", "examples/01_hello_web/main.py")
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          out = Path("dist/ios-web")
+          mod.app.compile(target="web", out_dir=str(out))
+          assert (out / "index.html").exists()
+          print("web bundle ready for iOS WebView shell")
+          PY
+      - name: Package placeholder IPA metadata
+        run: |
+          mkdir -p dist/ios
+          echo "EchoUI iOS shell uses web bundle + WKWebView template" > dist/ios/README.txt
+          tar -czf dist/echoui-ios-web-bundle.tar.gz dist/ios-web dist/ios
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: echoui-ios-bundle
+          path: dist/echoui-ios-web-bundle.tar.gz
