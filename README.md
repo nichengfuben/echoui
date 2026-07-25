@@ -2,6 +2,8 @@
 
 One **Screen–Stage–Sprite** paradigm compiles to Web, desktop, mobile, TUI, and GUI.
 
+**Version:** 0.9.0 · **License:** MIT · **Docs:** [docs/api/INDEX.md](docs/api/INDEX.md)
+
 ## Quick Start
 
 ```bash
@@ -46,6 +48,17 @@ Open http://127.0.0.1:7999 — click **+1** and the count increments.
 | `echoui build --target web\|static\|tui\|desktop\|gui` | Compile for target |
 | `echoui check` | Validate project |
 | `echoui version` | Print version |
+
+## Quality Gate
+
+```bash
+ruff check .
+mypy echoui
+pytest -q
+python achecker.py
+python -m build
+twine check dist/*
+```
 
 ## Testing
 

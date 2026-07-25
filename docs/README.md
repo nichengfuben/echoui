@@ -1,12 +1,14 @@
-# 文档已迁移
+# 文档入口
 
-用户与贡献者文档以 **`docs-src/`** 为准（镜像规范对齐 Provider-Evo）。
+用户文档：**[`api/INDEX.md`](api/INDEX.md)**
 
-| 原路径 | 新路径 |
-|--------|--------|
-| `docs/易混淆对照.md` | `docs-src/guide-references/易混淆对照.md` |
-| `docs/API_图鉴模板.md` | `docs-src/guide-references/API_图鉴模板.md` |
-| `docs/troubleshooting.md` | `docs-src/guide-references/troubleshooting.md` |
-| `docs/DOC_规范.md` | `docs-src/guide-references/DOC_规范.md` |
+规范镜像（贡献者）：**[`../docs-src/INDEX.md`](../docs-src/INDEX.md)**
 
-入口：[docs-src/INDEX.md](../docs-src/INDEX.md)
+| 路径 | 说明 |
+|------|------|
+| [api/getting-started.md](api/getting-started.md) | 安装与 Counter |
+| [api/targets.md](api/targets.md) | 渲染目标矩阵 |
+| [api/non-goals.md](api/non-goals.md) | 非目标 |
+| [api/roles.md](api/roles.md) | 内建 role |
+
+旧路径映射见 [`docs-src/guide-references/DOC_规范.md`](../docs-src/guide-references/DOC_规范.md)。

@@ -19,7 +19,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install -e ".[web,dev]"
+        run: pip install -e ".[web,dev]" tree-sitter tree-sitter-language-pack echotools
+      - name: Prefetch tree-sitter parsers
+        run: python -c "from tree_sitter_language_pack import download; download(['python','javascript','typescript','tsx','json','yaml','toml','html','css','bash','markdown','vue'])"
       - name: check_banned_terms
         run: python scripts/check_banned_terms.py
       - name: ruff
@@ -28,3 +30,9 @@ jobs:
         run: mypy echoui
       - name: pytest
         run: pytest -q
+      - name: achecker
+        run: python achecker.py
+      - name: build
+        run: python -m build
+      - name: twine check
+        run: twine check dist/*

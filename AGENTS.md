@@ -1,40 +1,24 @@
-\## Task Completion Requirements
+## Task Completion Requirements
 
+- Environment/configuration health check and static type checking must pass before considering tasks completed.
+- Run code style/lint checks (`ruff check .`) — must pass.
+- Run `python achecker.py` — must pass with 0 violations.
+- Run `pytest -q`, `mypy echoui`, `python -m build`, `twine check dist/*` for release-ready changes.
 
+## Project Snapshot
 
-\- Environment/configuration health check and static type checking  must pass before considering tasks completed.
+EchoUI is a Python-first UI framework using the **Screen → Stage → Sprite** paradigm. It compiles to web, static, TUI, desktop, and GUI targets.
 
-&#x20; - run code style/lint checks must also pass.
+Package: `echoui` · Version line: **0.9.0** · License: MIT
 
-&#x20; - run python achecker.py must also pass.
+## Core Priorities
 
+1. Reactive correctness (Signal / Computed / Store).
+2. Compiler + runtime parity across documented targets.
+3. Honest capability matrix — mark `done-degraded` or `interface-only` instead of silent stubs.
 
+## Documentation
 
-\## Project Snapshot
-
-
-
-Provider-Evo is a minimal runtime skeleton for running multi-platform AI provider adapters behind a unified aiohttp API.
-
-
-
-This repository is a VERY EARLY WIP. Proposing sweeping changes that improve long-term maintainability is encouraged.
-
-
-
-\## Core Priorities
-
-
-
-1\. Performance first.
-
-2\. Reliability first.
-
-3\. Keep behavior predictable under load and during failures (stability assurance mechanism for long-lived connections and streaming services).
-
-
-
-If a tradeoff is required, choose correctness and robustness over short-term convenience.
-
-
-
+- User docs: `docs/api/`
+- Spec mirror: `docs-src/`
+- Phase matrix: `.claude/docs/08_全量追踪矩阵.md` (sync with `PROGRESS.md`)
