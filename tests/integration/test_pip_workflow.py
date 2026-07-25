@@ -63,3 +63,8 @@ def test_pip_install_wheel_then_echoui_cli(tmp_path):
         env=env,
     )
     assert (app_dir / "dist" / "web" / "index.html").exists()
+    assert (app_dir / "dist" / "web" / "runtime.js").exists()
+    runtime_js = (app_dir / "dist" / "web" / "runtime.js").read_text(encoding="utf-8")
+    assert "loadFrameScript" in runtime_js
+    core = site / "echoui" / "runtime" / "web" / "core.js"
+    assert core.is_file(), f"missing packaged runtime asset: {core}"
