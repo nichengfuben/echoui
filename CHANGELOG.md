@@ -1,9 +1,75 @@
 # Changelog
 
-## 1.2.12 — v0.9 生态终态 (2026-07-25)
+## Unreleased — TMX object layers + chunked upload (2026-07-25)
+
+- **tiles**：`MapObject` / `ObjectGroup`；`load_tmx` 解析 `<objectgroup>` 点/矩形/tile-gid 子集；`TileMap.object_groups` / `objects()` / `find_object()`；仍无 infinite / zstd / 完整 polygon 顶点
+- **api**：`chunk_ranges` / `iter_byte_chunks`；`ApiClient.upload_chunked`（`Content-Range` + `X-Chunk-Index`/`X-Chunk-Count`）；`upload`/`download` 可选 `on_progress`
+- **测试**：pytest **214** passed, 1 skipped
+- **文档**：PROGRESS / 08 矩阵 **v12**；README 能力行更新
+
+## Unreleased — TMX base64/gzip + nested router layouts (2026-07-25)
+
+- **tiles**：`load_tmx` 支持 base64 layer（可选 gzip/zlib）；仍无 object layer / infinite / zstd
+- **router**：`RouteGroup` / `Router.group`；`parent` 链；`current_layouts()`；layout 列表去重
+- **测试**：pytest **208** passed, 1 skipped
+- **文档**：PROGRESS / 08 矩阵 **v11**；README 能力行更新
+
+## Unreleased — drop IR / forms async / router lazy / RTL (2026-07-25)
+
+- **compiler**：`analyze_ui` 收集 `drop_targets` → lower → `client_cfg`（贯通 `wireDropTargets`）
+- **layout**：`drop_target(...)` 工厂 + role `drop_target`
+- **forms**：`Field`/`Form.validate_async`；同步 `validate` 跳过协程校验器
+- **router**：lazy screen 可调用加载 + 缓存；`current_layout()`；middleware 含 layout/screen
+- **style**：`rtl` / `ltr` / `safe_area` / `writing_mode` → CSS
+- **pathfind**：`passable_from_tilemap` / `astar_on_tilemap`（接 TileMap solid）
+- **测试**：pytest **205** passed, 1 skipped
+- **文档**：PROGRESS / 08 矩阵 **v10**；README 能力行更新
+
+## Unreleased — physics/tmx/IME/DnD (2026-07-25)
+
+- **physics**：默认 AABB `World`；可选 `PymunkWorld` / `create_world("pymunk")`（`echoui[physics]`，非 box2d-py）
+- **tiles**：`TileMap` 多层 + `load_tmx`（正交 CSV 子集；`collision` 层 solid）
+- **IME**：`CompositionState` / `keyboard.composition_*` / `apply_composition_event`；Web composition* → `__ime_*`
+- **文件 DnD**：`DropFile` / `DropPayload` / `make_drop_event` / `dispatch_drop`；Web `wireDropTargets`
+- **测试**：`test_physics_tiles_ime_dnd`；pytest **196** passed, 1 skipped
+- **文档**：`docs-src/.../physics-tiles-ime-dnd.md`；README / PROGRESS / 08 矩阵 **v9**
+
+## Unreleased — media/rtc/FLIP + ws/sse 传输 (2026-07-25)
+
+- **media**：camera/geo/screen/sensors 无桥抛 `UnsupportedCapability`；`enable_media_sim`
+- **rtc**：进程内 `RTCPeer` / `DataChannel` 投递与 offer/answer 配对（非浏览器 WebRTC）
+- **animation**：FLIP `Rect` / `capture_rects` / `invert_rects` / `flip`
+- **网络**：`api.ws` / `api.sse` **aiohttp live 传输单测**（echo WS + SSE stream）
+- **测试**：`test_media_rtc_flip` · `test_ws_sse_transport`；pytest **187** passed
+- **文档**：`docs-src/.../media-rtc-flip.md`；README / PROGRESS / 08 矩阵 v8
+
+## Unreleased — gap-batch + 诚实对齐 (2026-07-25)
+
+- **网络**：`api.ws` / `api.sse` 客户端工厂与 handler 链
+- **Camera**：shake 衰减、`zoom_to(duration)`、follow deadzone
+- **MotionChain**：PLAN 风格 `.then_.…` 属性链
+- **canvas**：fluent `CanvasContext`
+- **workers / tasks**：ThreadPoolExecutor；`schedule` + `tick_minute`
+- **style**：container queries CSS 输出
+- **storage**：`FileBackend` / `configure_storage`；Cookie `max_age`
+- **gui**：`lowered.json` + `render_qt_tree` runner
+- **print**：`PageStyle` / `print_styles`
+- **animation**：具名 easing 表
+- **data**：`VirtualList` → `virtual_list` web emit
+- **platform / mobile**：硬件与 haptics 等无桥时抛 `UnsupportedCapability`（宿主 clipboard 等仍为内存桥）
+- **文档**：README 诚实能力矩阵；PROGRESS / 08 矩阵 v7
+
+## 1.2.13 — npm 对齐 CLI + App.title PWA (2026-07-25)
+
+- **CLI**：`echoui start`（同 `npm start`，默认 dev :8765）
+- **CLI**：`echoui run <script>` 读取 `pyproject.toml` `[tool.echoui.scripts]`
+- **PWA**：`manifest.webmanifest` 的 `name`/`short_name` 来自 `App(title=...)`
+- **脚手架**：`echoui new` 自带 scripts（start/dev/build/preview）
+
+## 1.2.12 — v0.9 生态子集 (2026-07-25)
 
 - **collab**：`Doc` / `Presence` / `Awareness` + SyncRelay 广播
-- **platform**：内存 clipboard/notifications/share；桌面 `dialog_open_file` → `files.pick`
+- **platform**：宿主内存 clipboard/notifications/share；桌面 `dialog_open_file` → `files.pick`
 - **a11y/print**：`print_view` + `@media print` CSS；`skip_link` / `focus_trap`
 - **CLI**：`echoui devtools` 信号/绑定图；`doctor` 含 collab 依赖
 - **optimizer**：binding 去重（保留 analyzer 静态子树标记）

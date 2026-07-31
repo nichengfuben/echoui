@@ -1,21 +1,67 @@
-"""Platform and device APIs — memory bridge on dev; UnsupportedCapability on unsupported targets."""
+"""Platform and device APIs — host memory bridge for common APIs; UnsupportedCapability for hardware-only."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from echoui.exceptions import UnsupportedCapability
 
 _clipboard_text: str = ""
 _notification_log: List[Dict[str, str]] = []
 _share_log: List[Dict[str, str]] = []
+_sim_capabilities: Set[str] = set()
+
+# Host-safe APIs always available in the Python process (memory / logging bridges).
+_HOST_CAPS: frozenset[str] = frozenset(
+    {
+        "reactive",
+        "compiler",
+        "clipboard",
+        "notifications",
+        "share",
+        "vibration",
+        "files",
+        "battery",
+        "network",
+    }
+)
+
+# Require real OS / device / browser bridges — never silent success.
+_HARDWARE_CAPS: frozenset[str] = frozenset(
+    {
+        "biometrics",
+        "bluetooth",
+        "usb",
+        "serial",
+        "midi",
+        "nfc",
+        "contacts",
+        "calendar",
+        "printer",
+        "geolocation",
+        "camera",
+        "microphone",
+    }
+)
 
 
-def _require_web(feature: str) -> None:
-    info = detect()
-    if not info.is_web and info.os not in ("emscripten",):
-        raise UnsupportedCapability(f"{feature} is not available on this target")
+def enable_capability_sim(*names: str) -> None:
+    """Test/dev only: allow selected hardware capabilities to use memory stubs."""
+    _sim_capabilities.update(names)
+
+
+def clear_capability_sim() -> None:
+    _sim_capabilities.clear()
+
+
+def _require(feature: str, capability: str) -> None:
+    if has_capability(capability) or capability in _sim_capabilities:
+        return
+    raise UnsupportedCapability(
+        f"{feature} is not available on this host "
+        f"(capability={capability!r}; use a native/web bridge or enable_capability_sim)"
+    )
 
 
 @dataclass
@@ -31,12 +77,15 @@ def detect() -> PlatformInfo:
     import sys
 
     os_name = sys.platform
-    caps = {"reactive", "compiler", "clipboard", "notifications", "share", "vibration", "files"}
+    caps: set[str] = set(_HOST_CAPS)
     is_web = os_name == "emscripten"
     is_desktop = os_name in ("win32", "darwin", "linux") and not is_web
     is_mobile = False
     if is_desktop:
-        caps.update({"filesystem", "window", "tray", "menubar"})
+        caps.update({"filesystem", "window", "tray", "menubar", "dialog"})
+    if is_web:
+        caps.update({"geolocation", "camera", "microphone", "share_native"})
+    caps.update(_sim_capabilities)
     return PlatformInfo(
         os=os_name,
         is_web=is_web,
@@ -100,27 +149,99 @@ class Vibration:
         self.patterns.append(list(pattern))
 
 
+class Biometrics:
+    async def authenticate(self, reason: str = "Unlock") -> bool:
+        _require("biometrics.authenticate", "biometrics")
+        return True
+
+
+class Bluetooth:
+    async def request(self, *, services: Optional[List[str]] = None) -> Dict[str, Any]:
+        _require("bluetooth.request", "bluetooth")
+        return {"services": list(services or [])}
+
+
+class Nfc:
+    async def read(self) -> str:
+        _require("nfc.read", "nfc")
+        return ""
+
+
+class Usb:
+    async def request(self) -> Dict[str, Any]:
+        _require("usb.request", "usb")
+        return {}
+
+
+class Serial:
+    async def request(self) -> Dict[str, Any]:
+        _require("serial.request", "serial")
+        return {}
+
+
+class Midi:
+    @property
+    def inputs(self) -> List[str]:
+        _require("midi.inputs", "midi")
+        return []
+
+
+class Contacts:
+    async def list(self) -> List[Dict[str, str]]:
+        _require("contacts.list", "contacts")
+        return []
+
+
+class Calendar:
+    async def list_events(self) -> List[Dict[str, Any]]:
+        _require("calendar.list_events", "calendar")
+        return []
+
+
+class Printer:
+    async def print(self, node: Any = None) -> None:
+        _require("printer.print", "printer")
+
+
+class Geolocation:
+    async def get(self) -> Dict[str, float]:
+        _require("geolocation.get", "geolocation")
+        return {"lat": 0.0, "lng": 0.0}
+
+    def watch(self, on_move: Callable[[Dict[str, float]], None]) -> None:
+        _require("geolocation.watch", "geolocation")
+
+
 notifications = Notifications()
 clipboard = Clipboard()
 share = Share()
 battery = Battery()
 network = Network()
 vibration = Vibration()
+biometrics = Biometrics()
+bluetooth = Bluetooth()
+nfc = Nfc()
+usb = Usb()
+serial = Serial()
+midi = Midi()
+contacts = Contacts()
+calendar = Calendar()
+printer = Printer()
+geolocation = Geolocation()
 
 
 async def dialog_open_file(*, accept: str = "*/*") -> Optional[str]:
     from echoui.storage.files import files
 
-    if detect().is_desktop:
+    if detect().is_desktop or has_capability("dialog"):
         return await files.pick(accept=accept)  # type: ignore[return-value]
-    _require_web("dialog.open_file")
-    return None
+    raise UnsupportedCapability("dialog.open_file is not available on this target")
 
 
 async def dialog_save_file(name: str, data: bytes) -> None:
-    if detect().is_desktop:
+    if detect().is_desktop or has_capability("dialog"):
         from echoui.storage.files import files
 
         await files.save(name, data)
         return
-    _require_web("dialog.save_file")
+    raise UnsupportedCapability("dialog.save_file is not available on this target")

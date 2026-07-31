@@ -158,6 +158,34 @@ def file_input(
     return _role("file_input", **p)
 
 
+def drop_target(
+    *children: Any,
+    signal: str | None = None,
+    file_signal: str | None = None,
+    on_drop: Optional[Callable[..., None]] = None,
+    effect: str = "copy",
+    upload_url: str | None = None,
+    field: str | None = None,
+    preview_id: str | None = None,
+    **props: Any,
+) -> IRNode:
+    """Drop zone node collected into client_cfg ``drop_targets`` for web wiring."""
+    p = {**props, "drop_target": True, "drop_effect": effect}
+    if signal:
+        p["_drop_signal"] = signal
+    if file_signal:
+        p["_drop_file_signal"] = file_signal
+    if upload_url:
+        p["upload_url"] = upload_url
+    if field:
+        p["field"] = field
+    if preview_id:
+        p["preview_id"] = preview_id
+    if on_drop is not None:
+        p["_handler_drop"] = on_drop
+    return IRNode("drop_target", props=p, children=normalize_children(list(children)))
+
+
 def box(*children: Any, **props: Any) -> IRNode:
     return IRNode("box", props=props, children=normalize_children(list(children)))
 

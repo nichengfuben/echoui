@@ -36,7 +36,13 @@ def rules_to_css(class_name: str, rules: Dict[str, Any]) -> str:
             for query, sub in val.items():
                 nested.append(f"@media {query}{{.{class_name}{{{_decls(sub)}}}}}")
             continue
-        if key == "container":
+        if key == "container" and isinstance(val, dict):
+            # CSS container queries: key is condition string, value is nested rules.
+            for query, sub in val.items():
+                if isinstance(sub, dict):
+                    nested.append(
+                        f"@container {query}{{.{class_name}{{{_decls(sub)}}}}}"
+                    )
             continue
         prop = key.replace("_", "-")
         if isinstance(val, (list, tuple)):
@@ -83,6 +89,43 @@ def keyframes_css(name: str, frames: Dict[str, Dict[str, Any]]) -> str:
         body = ";".join(f"{k.replace('_', '-')}: {v}" for k, v in rules.items())
         parts.append(f"{pct} {{ {body}; }}")
     return f"@keyframes {name} {{ {' '.join(parts)} }}"
+
+
+def rtl(**rules: Any) -> Dict[str, Any]:
+    """Mark a style block as RTL-aware (direction:rtl + optional overrides)."""
+    out = {"direction": "rtl", **rules}
+    return out
+
+
+def ltr(**rules: Any) -> Dict[str, Any]:
+    return {"direction": "ltr", **rules}
+
+
+def safe_area(
+    *,
+    top: bool = True,
+    right: bool = True,
+    bottom: bool = True,
+    left: bool = True,
+    extra: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """Padding using env(safe-area-inset-*) for notched devices."""
+    pad: Dict[str, Any] = {}
+    if top:
+        pad["padding_top"] = "env(safe-area-inset-top)"
+    if right:
+        pad["padding_right"] = "env(safe-area-inset-right)"
+    if bottom:
+        pad["padding_bottom"] = "env(safe-area-inset-bottom)"
+    if left:
+        pad["padding_left"] = "env(safe-area-inset-left)"
+    if extra:
+        pad.update(extra)
+    return pad
+
+
+def writing_mode(mode: str = "horizontal-tb", **rules: Any) -> Dict[str, Any]:
+    return {"writing_mode": mode, **rules}
 
 
 class _ThemeProxy:

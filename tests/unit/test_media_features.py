@@ -45,7 +45,7 @@ def test_file_input_emits_type_file():
 def test_file_input_wired_in_client_cfg():
     reset_id_gen()
     root = file_input("bg", accept="image/*", signal="RunnerStore.bg_url")
-    _, _, files, _ = analyze_ui(root)
+    _, _, files, _, _ = analyze_ui(root)
     assert len(files) == 1
     assert files[0]["signal"] == "RunnerStore.bg_url"
     assert files[0]["node"] == root.id
@@ -61,7 +61,7 @@ def test_image_src_binding_collected():
     ms = MediaStore()
 
     root = image(lambda: ms.url, width=100, height=100)
-    bindings, signals, files, overlays = analyze_ui(root)
+    bindings, signals, files, overlays, _drops = analyze_ui(root)
     assert any(b.get("t") == "attr" and b.get("a") == "src" for b in bindings)
 
 

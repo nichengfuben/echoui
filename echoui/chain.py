@@ -6,10 +6,48 @@ import asyncio
 from typing import Any, Callable, List
 
 
+class _ThenProxy:
+    """PLAN-style property chain: ``chain.then_.rotate(180)``."""
+
+    def __init__(self, owner: "MotionChain") -> None:
+        self._owner = owner
+
+    def glide_to(self, x: float, y: float, duration: float) -> "MotionChain":
+        return self._owner.glide_to(x, y, duration)
+
+    def fade_in(self, duration: float = 0.3) -> "MotionChain":
+        return self._owner.fade_in(duration)
+
+    def fade_out(self, duration: float = 0.3) -> "MotionChain":
+        return self._owner.fade_out(duration)
+
+    def spin(self, degrees: float, duration: float) -> "MotionChain":
+        return self._owner.spin(degrees, duration)
+
+    def rotate(self, degrees: float, duration: float = 0) -> "MotionChain":
+        return self._owner.rotate(degrees, duration)
+
+    def destroy(self) -> "MotionChain":
+        return self._owner.destroy()
+
+    def when(self, condition: Callable[[], bool], then: Callable[[Any], None]) -> Any:
+        return self._owner.when(condition, then)
+
+    def otherwise(self, fn: Callable[[Any], None]) -> "MotionChain":
+        return self._owner.otherwise(fn)
+
+    def __call__(self, other: "MotionChain | Callable[[], Any]") -> "MotionChain":
+        return self._owner.append_step(other)
+
+
 class MotionChain:
     def __init__(self, sprite: Any) -> None:
         self._sprite = sprite
         self._steps: List[Callable[[], Any]] = []
+
+    @property
+    def then_(self) -> _ThenProxy:
+        return _ThenProxy(self)
 
     def glide_to(self, x: float, y: float, duration: float) -> "MotionChain":
         sprite = self._sprite
@@ -65,11 +103,35 @@ class MotionChain:
         self._steps.append(step)
         return self
 
+    def rotate(self, degrees: float, duration: float = 0) -> "MotionChain":
+        sprite = self._sprite
+        if duration <= 0:
+
+            async def step() -> None:
+                sprite.rotation = getattr(sprite, "rotation", 0) + degrees
+
+            self._steps.append(step)
+            return self
+        return self.spin(degrees, duration)
+
+    def destroy(self) -> "MotionChain":
+        sprite = self._sprite
+
+        async def step() -> None:
+            if hasattr(sprite, "destroy"):
+                sprite.destroy()
+            else:
+                sprite.hidden = True
+
+        self._steps.append(step)
+        return self
+
     def parallel(self, other: "MotionChain") -> "MotionChain":
         async def step() -> None:
-            await asyncio.gather(*[self._run_one(s) for s in self._steps], *[
-                self._run_one(s) for s in other._steps
-            ])
+            await asyncio.gather(
+                *[self._run_one(s) for s in self._steps],
+                *[self._run_one(s) for s in other._steps],
+            )
 
         self._steps = [step]
         return self
@@ -128,7 +190,7 @@ class MotionChain:
         self._steps.append(step)
         return self
 
-    def then_(self, other: "MotionChain | Callable[[], Any]") -> "MotionChain":
+    def append_step(self, other: "MotionChain | Callable[[], Any]") -> "MotionChain":
         if isinstance(other, MotionChain):
             self._steps.extend(other._steps)
         else:

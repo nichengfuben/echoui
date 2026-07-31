@@ -1,5 +1,7 @@
 """Form validation tests."""
 
+import pytest
+
 from echoui.forms import Form, email, field, min_len, required
 
 
@@ -43,3 +45,28 @@ def test_wizard_steps():
     f.wizard(["step1"], ["step2"])
     assert f.validate({"step1": "ok", "step2": ""})
     assert "step2" not in f.errors
+
+
+@pytest.mark.asyncio
+async def test_validate_async_runs_async_validator():
+    calls: list[str] = []
+
+    async def unique_name(value, _data):
+        calls.append(str(value))
+        if value == "taken":
+            return "Name taken"
+        return None
+
+    f = Form().add(field("name", required(), unique_name))
+    # sync path skips coroutine validators
+    assert f.validate({"name": "taken"}) is True
+    assert "name" not in f.errors
+
+    ok = await f.validate_async({"name": "taken"})
+    assert ok is False
+    assert f.errors["name"] == "Name taken"
+    assert "taken" in calls
+
+    ok2 = await f.validate_async({"name": "free"})
+    assert ok2 is True
+    assert f.errors == {}

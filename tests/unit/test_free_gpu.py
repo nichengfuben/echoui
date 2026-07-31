@@ -21,7 +21,7 @@ def test_free_gpu_skips_images():
     Store.reset_registry()
     mod.RunnerStore()
     parsed = analyze(parse_app(mod.app))
-    bindings, _, _, _ = analyze_ui(parsed["root"])
+    bindings, _, _, _, _ = analyze_ui(parsed["root"])
     gpu = collect_free_gpu(parsed["root"], bindings)
     assert gpu is not None
     colors = {n["c"] for n in gpu["nodes"]}

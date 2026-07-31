@@ -1,9 +1,46 @@
-"""Keyboard and mouse input."""
+"""Keyboard, mouse, touch, gamepad, and IME composition input."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Set
+from typing import Any, Callable, Dict, List, Optional, Set
+
+
+@dataclass
+class CompositionState:
+    """IME / composition session state (host or browser composition*)."""
+
+    active: bool = False
+    data: str = ""
+    start: int = 0
+    end: int = 0
+
+    def begin(self, data: str = "", start: int = 0, end: int = 0) -> None:
+        self.active = True
+        self.data = data
+        self.start = start
+        self.end = end if end else len(data)
+
+    def update(self, data: str, start: int = 0, end: int = 0) -> None:
+        self.active = True
+        self.data = data
+        self.start = start
+        self.end = end if end else len(data)
+
+    def end_session(self, data: str = "", *, commit: bool = True) -> str:
+        """Finish composition; returns committed text when ``commit`` else ''."""
+        final = data if data else self.data
+        self.active = False
+        self.data = ""
+        self.start = 0
+        self.end = 0
+        return final if commit else ""
+
+    def clear(self) -> None:
+        self.active = False
+        self.data = ""
+        self.start = 0
+        self.end = 0
 
 
 @dataclass
@@ -11,6 +48,8 @@ class Keyboard:
     _down: Set[str] = field(default_factory=set)
     _pressed: Set[str] = field(default_factory=set)
     _released: Set[str] = field(default_factory=set)
+    composition: CompositionState = field(default_factory=CompositionState)
+    _committed: List[str] = field(default_factory=list)
 
     def down(self, key: str) -> bool:
         return key in self._down
@@ -21,6 +60,12 @@ class Keyboard:
     def released(self, key: str) -> bool:
         return key in self._released
 
+    def composing(self) -> bool:
+        return self.composition.active
+
+    def composition_text(self) -> str:
+        return self.composition.data
+
     def simulate_down(self, key: str) -> None:
         self._down.add(key)
         self._pressed.add(key)
@@ -28,6 +73,23 @@ class Keyboard:
     def simulate_up(self, key: str) -> None:
         self._down.discard(key)
         self._released.add(key)
+
+    def composition_start(self, data: str = "") -> None:
+        self.composition.begin(data)
+
+    def composition_update(self, data: str) -> None:
+        self.composition.update(data)
+
+    def composition_end(self, data: str = "", *, commit: bool = True) -> str:
+        text = self.composition.end_session(data, commit=commit)
+        if text:
+            self._committed.append(text)
+        return text
+
+    def take_committed(self) -> List[str]:
+        out = list(self._committed)
+        self._committed.clear()
+        return out
 
     def end_frame(self) -> None:
         self._pressed.clear()
@@ -114,3 +176,27 @@ class Shortcuts:
 
 def end_input_frame() -> None:
     keyboard.end_frame()
+
+
+def apply_composition_event(
+    event_type: str,
+    data: str = "",
+    *,
+    start: int = 0,
+    end: int = 0,
+    commit: bool = True,
+) -> Optional[str]:
+    """Apply a browser-style composition event to the global keyboard.
+
+    Returns committed text for ``compositionend``, else None.
+    """
+    et = event_type.replace("-", "").lower()
+    if et in ("compositionstart", "composition_start"):
+        keyboard.composition_start(data)
+        return None
+    if et in ("compositionupdate", "composition_update"):
+        keyboard.composition_update(data)
+        return None
+    if et in ("compositionend", "composition_end"):
+        return keyboard.composition_end(data, commit=commit)
+    raise ValueError(f"unknown composition event: {event_type!r}")

@@ -102,4 +102,4 @@ class Runner(Screen):
         )
 
 
-app = App(screens=[Runner], initial="Runner")
+app = App(screens=[Runner], initial="Runner", title="Endless Runner")

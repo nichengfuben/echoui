@@ -3,27 +3,47 @@
 | 项 | 说明 |
 |----|------|
 | 规格域 | platform / a11y / print / CLI devtools |
-| 状态 | done (Web/桌面内存模拟 + print CSS) |
-| 测试 | `test_ecosystem_v09.py` |
+| 状态 | partial（宿主内存桥 + 硬件 API 显式 UnsupportedCapability） |
+| 测试 | `test_ecosystem_v09.py` · `test_platform_honesty.py` |
 | 示例 | `examples/07_full_web`（i18n/a11y 子集） |
 
-## platform — 内存 clipboard / notifications / share
+## platform — 诚实能力模型
+
+**宿主可用（进程内内存/日志桥，非系统剪贴板/系统通知）：**
+
+- `clipboard` / `notifications` / `share` / `vibration` / `battery` / `network`
+- 桌面 `dialog_open_file` / `dialog_save_file` 委托 `files`（tkinter 选文件）
+
+**硬件/系统 API（无 native/web 桥时抛 `UnsupportedCapability`）：**
+
+- `biometrics` · `bluetooth` · `nfc` · `usb` · `serial` · `midi`
+- `contacts` · `calendar` · `printer` · `geolocation`（非 emscripten）
+
+测试或本地演示可 `enable_capability_sim("biometrics", …)` 临时放开。
 
 ```python
 import asyncio
-from echoui.platform import clipboard, detect, notifications, share
+from echoui.exceptions import UnsupportedCapability
+from echoui.platform import clipboard, detect, notifications, share, biometrics
 
 async def demo():
     await clipboard.write_text("hello")
     assert await clipboard.read_text() == "hello"
     await share.share({"title": "EchoUI", "url": "https://example.com"})
+    try:
+        await biometrics.authenticate("pay")
+    except UnsupportedCapability:
+        pass
 
 asyncio.run(demo())
 notifications.show("Hi", body="there")
 assert detect().capabilities
 ```
 
-桌面 `dialog_open_file` 委托 `files.pick()`（tkinter 原生选文件）。
+## mobile
+
+默认宿主 Python **不**静默成功：`haptics_impact` / `orientation_lock` / `push_register` 无移动壳时抛 `UnsupportedCapability`。  
+`enable_mobile_sim()` 仅用于测试/演示日志桥。
 
 ## a11y
 
@@ -38,14 +58,16 @@ focus_trap(True)
 
 ```python
 from echoui import col, print_view, text
+from echoui.print import PageStyle, print_styles
 
 col(
     text("screen"),
     print_view(text("仅打印此区域")),
 )
+print_styles(page=PageStyle(size="A4", margin="1.5cm"))
 ```
 
-Web emit 含 `.e-print-view` 与 `@media print` CSS。
+Web emit 含 `.e-print-view` 与 `@media print` CSS；`PageStyle` 生成 `@page` 规则。
 
 ## collab — Doc / Awareness
 

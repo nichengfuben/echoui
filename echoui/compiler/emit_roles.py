@@ -84,6 +84,20 @@ def render_role_html(
     if role == "table":
         return _render_table(node, attrs, cls, style_attr, props, kids)
     if role == "list_view" or role == "tree":
+        if props.get("virtual"):
+            item_h = props.get("item_height", 40)
+            total = props.get("total", props.get("total_height", 0))
+            if isinstance(total, (int, float)) and props.get("item_height") and props.get("total_height"):
+                # total_height is pixels; prefer explicit total count when present
+                total = props.get("total", max(1, int(props.get("total_height", 0) // max(1, int(item_h)))))
+            height = props.get("height", props.get("viewport_height", 400))
+            return (
+                f'<div{attrs} class="{html.escape(cls)} e-virtual-list e-list" '
+                f'data-item-height="{item_h}" data-total="{total}" '
+                f'style="height:{height}px;overflow:auto;position:relative"{style_attr.lstrip()}>'
+                f'<div class="e-virtual-spacer" style="height:{int(item_h) * int(total)}px"></div>'
+                f'<div class="e-virtual-viewport">{kids or inner}</div></div>'
+            )
         return f'<ul{attrs} class="{html.escape(cls)} e-list"{style_attr}>{kids or inner}</ul>'
     if role == "tabs":
         return f'<div{attrs} class="{html.escape(cls)} e-tabs" role="tablist"{style_attr}>{kids}</div>'

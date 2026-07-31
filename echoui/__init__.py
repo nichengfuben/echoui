@@ -12,6 +12,7 @@ from echoui.layout import (
     center,
     col,
     divider,
+    drop_target,
     file_input,
     grid,
     heading,
@@ -35,9 +36,9 @@ from echoui.sprite import Sprite
 from echoui.stage import Stage
 from echoui.stage import stage as stage_fn
 from echoui.state import Store
-from echoui.style import css, keyframes_css, set_theme, style, theme
+from echoui.style import css, keyframes_css, ltr, rtl, safe_area, set_theme, style, theme
 
-__version__ = "1.2.12"
+__version__ = "1.2.13"
 
 # Built-in role factories — resolved via layout module
 _BUILTIN_ROLE_NAMES = (
@@ -127,6 +128,9 @@ __all__ = [
     "style",
     "css",
     "keyframes_css",
+    "rtl",
+    "ltr",
+    "safe_area",
     "set_theme",
     "theme",
     "on",
@@ -143,6 +147,7 @@ __all__ = [
     "print_view",
     "image",
     "file_input",
+    "drop_target",
     "link",
     "center",
     "divider",

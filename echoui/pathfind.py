@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import heapq
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 
 def astar(
@@ -31,6 +31,38 @@ def astar(
                 f = tentative + h(nb, goal)
                 heapq.heappush(open_set, (f, nb))
     return None
+
+
+def passable_from_tilemap(tm: Any) -> Callable[[int, int], bool]:
+    """Build A* ``passable`` from a TileMap (uses ``solid_at`` / bounds)."""
+
+    cols = int(getattr(tm, "cols", 0) or 0)
+    rows = int(getattr(tm, "rows", 0) or 0)
+
+    def _passable(x: int, y: int) -> bool:
+        if cols and rows and (x < 0 or y < 0 or x >= cols or y >= rows):
+            return False
+        solid_at = getattr(tm, "solid_at", None)
+        if callable(solid_at):
+            return not bool(solid_at(x, y))
+        get = getattr(tm, "get", None)
+        if callable(get):
+            try:
+                return int(get(x, y) or 0) == 0
+            except Exception:
+                return True
+        return True
+
+    return _passable
+
+
+def astar_on_tilemap(
+    tm: Any,
+    start: Tuple[int, int],
+    goal: Tuple[int, int],
+) -> Optional[List[Tuple[int, int]]]:
+    """A* over tile coordinates using TileMap solid layers."""
+    return astar(start, goal, passable=passable_from_tilemap(tm))
 
 
 def _neighbors(pos: Tuple[int, int]) -> List[Tuple[int, int]]:

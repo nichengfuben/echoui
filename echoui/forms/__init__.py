@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 from dataclasses import dataclass
 from dataclasses import field as dc_field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 ValidatorFn = Callable[[Any, Dict[str, Any]], Optional[str]]
+AsyncValidatorFn = Callable[[Any, Dict[str, Any]], Awaitable[Optional[str]]]
+AnyValidatorFn = Union[ValidatorFn, AsyncValidatorFn]
 
 
 def required(msg: str = "Required") -> ValidatorFn:
@@ -128,26 +131,46 @@ def max_files(n: int, msg: str | None = None) -> ValidatorFn:
 @dataclass
 class Field:
     name: str
-    validators: List[ValidatorFn] = dc_field(default_factory=list)
+    validators: List[AnyValidatorFn] = dc_field(default_factory=list)
     value: Any = None
 
     def validate(self, data: Dict[str, Any]) -> Optional[str]:
         val = data.get(self.name, self.value)
         for v in self.validators:
-            err = v(val, data)
+            if inspect.iscoroutinefunction(v):
+                continue
+            err = self._run_sync(v, val, data)
             if err:
                 return err
         return None
 
+    async def validate_async(self, data: Dict[str, Any]) -> Optional[str]:
+        val = data.get(self.name, self.value)
+        for v in self.validators:
+            if inspect.iscoroutinefunction(v):
+                err = await v(val, data)
+            else:
+                err = self._run_sync(v, val, data)
+            if err:
+                return err
+        return None
 
-def field(name: str, *validators: ValidatorFn) -> Field:
+    @staticmethod
+    def _run_sync(v: AnyValidatorFn, val: Any, data: Dict[str, Any]) -> Optional[str]:
+        result = v(val, data)
+        if inspect.isawaitable(result):
+            return None
+        return result  # type: ignore[return-value]
+
+
+def field(name: str, *validators: AnyValidatorFn) -> Field:
     return Field(name=name, validators=list(validators))
 
 
 @dataclass
 class Form:
     fields: List[Field] = dc_field(default_factory=list)
-    cross_validators: List[ValidatorFn] = dc_field(default_factory=list)
+    cross_validators: List[AnyValidatorFn] = dc_field(default_factory=list)
     errors: Dict[str, str] = dc_field(default_factory=dict)
     step: int = 0
     steps: List[List[str]] = dc_field(default_factory=list)
@@ -156,7 +179,7 @@ class Form:
         self.fields.append(f)
         return self
 
-    def add_cross(self, fn: ValidatorFn) -> "Form":
+    def add_cross(self, fn: AnyValidatorFn) -> "Form":
         self.cross_validators.append(fn)
         return self
 
@@ -165,6 +188,7 @@ class Form:
         return self
 
     def validate(self, data: Dict[str, Any]) -> bool:
+        """Sync validation only; coroutine validators are skipped (use validate_async)."""
         self.errors.clear()
         active = self._active_fields()
         for f in self.fields:
@@ -174,7 +198,28 @@ class Form:
             if err:
                 self.errors[f.name] = err
         for cv in self.cross_validators:
-            err = cv(None, data)
+            if inspect.iscoroutinefunction(cv):
+                continue
+            err = Field._run_sync(cv, None, data)
+            if err:
+                self.errors["_form"] = err
+        return len(self.errors) == 0
+
+    async def validate_async(self, data: Dict[str, Any]) -> bool:
+        """Run sync + async field/cross validators; fills ``errors`` like validate()."""
+        self.errors.clear()
+        active = self._active_fields()
+        for f in self.fields:
+            if f.name not in active:
+                continue
+            err = await f.validate_async(data)
+            if err:
+                self.errors[f.name] = err
+        for cv in self.cross_validators:
+            if inspect.iscoroutinefunction(cv):
+                err = await cv(None, data)
+            else:
+                err = Field._run_sync(cv, None, data)
             if err:
                 self.errors["_form"] = err
         return len(self.errors) == 0

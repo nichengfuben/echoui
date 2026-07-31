@@ -34,6 +34,7 @@ ROLE_MAP: Dict[str, str] = {
     "time_picker": "input",
     "datetime_picker": "input",
     "file_input": "input",
+    "drop_target": "div",
     "box": "div",
     "card": "div",
     "scroll": "div",

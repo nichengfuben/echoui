@@ -16,11 +16,12 @@ from echoui.events import collect_frame_handlers, collect_key_handlers, collect_
 def analyze(parsed: Dict[str, Any]) -> Dict[str, Any]:
     root = parsed["root"]
     normalize_screen_tree(root)
-    reactive_bindings, signals, file_inputs, overlays = analyze_ui(root)
+    reactive_bindings, signals, file_inputs, overlays, drop_targets = analyze_ui(root)
     parsed["signals"] = signals
     parsed["reactive_bindings"] = reactive_bindings
     parsed["file_inputs"] = file_inputs
     parsed["overlays"] = overlays
+    parsed["drop_targets"] = drop_targets
     parsed["actions"] = compile_actions(
         parsed.get("handlers", {}),
         app_initial=getattr(parsed.get("app"), "initial", "Home"),

@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
 from echoui import __version__
 
 _BUILD_TARGETS = ["web", "static", "tui", "desktop", "gui", "android", "ios"]
+_DEFAULT_START_PORT = 8765
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,11 +25,21 @@ def main(argv: list[str] | None = None) -> int:
     new_p = sub.add_parser("new", help="Create a new EchoUI project")
     new_p.add_argument("name", nargs="?", default="my-app")
 
+    start_p = sub.add_parser("start", help="Start dev server (npm start)")
+    start_p.add_argument("--target", default="web")
+    start_p.add_argument("--port", type=int, default=_DEFAULT_START_PORT)
+    start_p.add_argument("--host", default="0.0.0.0", help="Bind address (default 0.0.0.0)")
+    start_p.add_argument("entry", nargs="?", default="main.py")
+
     dev_p = sub.add_parser("dev", help="Start dev server")
     dev_p.add_argument("--target", default="web")
     dev_p.add_argument("--port", type=int, default=7999)
     dev_p.add_argument("--host", default="0.0.0.0", help="Bind address (default 0.0.0.0)")
     dev_p.add_argument("entry", nargs="?", default="main.py")
+
+    run_p = sub.add_parser("run", help="Run a script from pyproject.toml (npm run)")
+    run_p.add_argument("script", help="Script name under [tool.echoui.scripts]")
+    run_p.add_argument("script_args", nargs=argparse.REMAINDER, help="Extra args passed to the script")
 
     build_p = sub.add_parser("build", help="Build for target")
     build_p.add_argument("--target", default="web", choices=_BUILD_TARGETS)
@@ -65,8 +78,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "new":
         return cmd_new(args.name)
+    if args.cmd == "start":
+        return cmd_start(args.entry, host=args.host, port=args.port, target=args.target)
     if args.cmd == "dev":
         return cmd_dev(args.entry, host=args.host, port=args.port, target=args.target)
+    if args.cmd == "run":
+        extra = [a for a in args.script_args if a != "--"]
+        return cmd_run(args.script, extra)
     if args.cmd == "build":
         return cmd_build(args.entry, target=args.target, out=args.out, package=args.package)
     if args.cmd == "preview":
@@ -101,8 +119,46 @@ def cmd_new(name: str) -> int:
     (root / "pyproject.toml").write_text(_NEW_PYPROJECT.format(name=name), encoding="utf-8")
     print(f"Created {name}/")
     print("  main.py  pyproject.toml  README.md  .gitignore")
-    print(f"Next: cd {name} && pip install -e . && echoui build --target web && echoui dev --port 8765")
+    print(f"Next: cd {name} && pip install -e . && echoui start")
     return 0
+
+
+def _echoui_scripts(cwd: Path | None = None) -> dict[str, str]:
+    path = (cwd or Path.cwd()) / "pyproject.toml"
+    if not path.is_file():
+        return {}
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    raw = data.get("tool", {}).get("echoui", {}).get("scripts", {})
+    return {str(k): str(v) for k, v in raw.items()}
+
+
+def _dispatch_script(line: str, extra: list[str] | None = None) -> int:
+    tokens = shlex.split(line, comments=True, posix=(sys.platform != "win32"))
+    if extra:
+        tokens.extend(extra)
+    if not tokens:
+        print("Empty script")
+        return 1
+    if tokens[0] == "echoui":
+        tokens = tokens[1:]
+    return main(tokens)
+
+
+def cmd_start(entry: str, *, host: str, port: int, target: str) -> int:
+    scripts = _echoui_scripts()
+    if "start" in scripts:
+        return _dispatch_script(scripts["start"])
+    return cmd_dev(entry, host=host, port=port, target=target)
+
+
+def cmd_run(name: str, extra: list[str]) -> int:
+    scripts = _echoui_scripts()
+    if name not in scripts:
+        print(f'Missing script "{name}". Add [tool.echoui.scripts] to pyproject.toml')
+        known = ", ".join(sorted(scripts)) or "(none)"
+        print(f"Available: {known}")
+        return 1
+    return _dispatch_script(scripts[name], extra)
 
 
 def cmd_build(entry: str, *, target: str, out: str | None, package: bool = False) -> int:
@@ -430,6 +486,12 @@ dependencies = [
     "echoui[web]>=1.2.0",
 ]
 
+[tool.echoui.scripts]
+start = "dev --port 8765"
+dev = "dev --port 8765"
+build = "build --target web"
+preview = "preview --port 8765"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -444,8 +506,8 @@ pip install echoui[web]
 # or from this folder after cloning deps:
 pip install -e .
 
-echoui build --target web
-echoui dev --port 8765
+echoui start
+# npm equivalents: echoui run build | echoui run dev
 ```
 
 Open http://127.0.0.1:8765

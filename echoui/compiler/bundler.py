@@ -79,14 +79,15 @@ def _build_web(app: Any, out: Path) -> str:
     manifest = {"target": "web", "screens": screens}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (out / "screens.json").write_text(json.dumps(screens), encoding="utf-8")
-    _write_pwa(out)
+    _write_pwa(out, title=app.title)
     return str(out.resolve())
 
 
-def _write_pwa(out: Path) -> None:
+def _write_pwa(out: Path, *, title: str = "EchoUI App") -> None:
+    short = title if len(title) <= 12 else title[:12].rstrip()
     manifest = {
-        "name": "EchoUI App",
-        "short_name": "EchoUI",
+        "name": title,
+        "short_name": short,
         "start_url": ".",
         "display": "standalone",
         "background_color": "#ffffff",

@@ -27,6 +27,7 @@ def lower_web(ir_bundle: Dict[str, Any]) -> Dict[str, Any]:
         "static": ir_bundle.get("static", False),
         "local_exec": ir_bundle.get("local_exec", False),
         "file_inputs": ir_bundle.get("file_inputs", []),
+        "drop_targets": ir_bundle.get("drop_targets", []),
         "overlays": ir_bundle.get("overlays", []),
     }
 

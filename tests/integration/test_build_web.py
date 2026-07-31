@@ -25,11 +25,18 @@ app = App(screens=[Counter], initial="Counter")
 
 def test_build_web_manifest(tmp_path):
     out = tmp_path / "dist"
-    build_target(app, target="web", out_dir=str(out))
+    titled = App(screens=[Counter], initial="Counter", title="My Counter App")
+    build_target(titled, target="web", out_dir=str(out))
     assert (out / "index.html").exists()
     assert (out / "manifest.json").exists()
     assert (out / "manifest.webmanifest").exists()
     assert (out / "sw.js").exists()
+    import json
+
+    pwa = json.loads((out / "manifest.webmanifest").read_text(encoding="utf-8"))
+    assert pwa["name"] == "My Counter App"
+    assert pwa["short_name"] == "My Counter A"
+    assert "<title>My Counter App</title>" in (out / "index.html").read_text(encoding="utf-8")
 
 
 def test_build_web_runtime_size(tmp_path):

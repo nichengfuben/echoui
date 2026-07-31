@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, TypeVar
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -332,3 +332,116 @@ def _walk(nodes: list) -> Any:
     for n in nodes:
         yield n
         yield from _walk(n.children)
+
+
+@dataclass
+class DropFile:
+    """One dropped file metadata (+ optional in-memory content)."""
+
+    name: str
+    size: int = 0
+    type: str = ""
+    content: Any = None
+
+
+@dataclass
+class DropPayload:
+    """Normalized OS / browser file drop payload."""
+
+    x: float = 0
+    y: float = 0
+    files: List[DropFile] = field(default_factory=list)
+    data: Any = None
+    types: List[str] = field(default_factory=list)
+
+    def names(self) -> List[str]:
+        return [f.name for f in self.files]
+
+
+def make_drop_event(
+    *,
+    x: float = 0,
+    y: float = 0,
+    files: Optional[List[Any]] = None,
+    data: Any = None,
+    types: Optional[List[str]] = None,
+) -> Event:
+    """Build an ``Event(type='drop')`` with ``files`` / ``data`` populated."""
+    drop_files: List[DropFile] = []
+    for item in files or []:
+        if isinstance(item, DropFile):
+            drop_files.append(item)
+        elif isinstance(item, dict):
+            drop_files.append(
+                DropFile(
+                    name=str(item.get("name", "")),
+                    size=int(item.get("size", 0) or 0),
+                    type=str(item.get("type", "") or ""),
+                    content=item.get("content"),
+                )
+            )
+        elif isinstance(item, str):
+            drop_files.append(DropFile(name=item))
+        else:
+            drop_files.append(
+                DropFile(
+                    name=str(getattr(item, "name", item)),
+                    size=int(getattr(item, "size", 0) or 0),
+                    type=str(getattr(item, "type", "") or ""),
+                    content=getattr(item, "content", None),
+                )
+            )
+    return Event(
+        type="drop",
+        x=x,
+        y=y,
+        data=data,
+        files=list(drop_files),
+    )
+
+
+def dispatch_drop(
+    registry: Dict[str, Callable[..., Any]],
+    dom_handlers: List[Dict[str, str]],
+    node_id: str,
+    payload: DropPayload | Event | None = None,
+    *,
+    app: Any = None,
+    instance: Any = None,
+    x: float = 0,
+    y: float = 0,
+    files: Optional[List[Any]] = None,
+    data: Any = None,
+) -> bool:
+    """Dispatch a file-drop to a registered ``@on('drop')`` handler."""
+    if isinstance(payload, Event):
+        event = payload
+        if event.type != "drop":
+            event = Event(
+                type="drop",
+                x=event.x,
+                y=event.y,
+                data=event.data,
+                files=list(event.files),
+            )
+    elif isinstance(payload, DropPayload):
+        event = make_drop_event(
+            x=payload.x,
+            y=payload.y,
+            files=list(payload.files),
+            data=payload.data,
+            types=list(payload.types),
+        )
+    else:
+        event = make_drop_event(x=x, y=y, files=files, data=data)
+
+    for item in dom_handlers:
+        if item["node"] != node_id or item["type"] != "drop":
+            continue
+        fn = registry.get(item["handler"])
+        if not fn:
+            continue
+        inst = instance if instance is not None else _handler_instance(app, fn)
+        _call_handler(fn, inst, event)
+        return True
+    return False

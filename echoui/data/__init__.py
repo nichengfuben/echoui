@@ -43,6 +43,33 @@ class VirtualList(Generic[T]):
     def scroll_by(self, delta: float) -> None:
         self.scroll_to(int((self.scroll_top + delta) // self.item_height))
 
+    def to_ir(self) -> Any:
+        """Emit a windowed list IR node for web emitters (role virtual_list)."""
+        from echoui.sprite import IRNode, normalize_children
+
+        children: List[Any] = []
+        for idx, item in self.visible_items():
+            if self.render_item is not None:
+                children.append(self.render_item(item, idx))
+            else:
+                children.append(IRNode("text", props={"text": str(item), "data-index": idx}))
+        return IRNode(
+            "virtual_list",
+            props={
+                "virtual": True,
+                "item_height": self.item_height,
+                "height": self.viewport_height,
+                "viewport_height": self.viewport_height,
+                "scroll_top": self.scroll_top,
+                "total": len(self.items),
+                "total_height": self.total_height,
+                "start_index": self.start_index,
+                "end_index": self.end_index,
+                "class": "e-virtual-list",
+            },
+            children=normalize_children(children),
+        )
+
 
 @dataclass
 class DataTable:
