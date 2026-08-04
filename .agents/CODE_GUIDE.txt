@@ -1,0 +1,3898 @@
+# ECHOUI 框架完整规范与开发指南
+
+**版本**: 2.0.0  
+**状态**: 生产就绪标准  
+**核心理念**: 用Python语法描述一切，无需HTML/JS/CSS，调用链驱动，全平台一致
+
+---
+
+## 目录
+
+1. [核心哲学与架构](#一核心哲学与架构)
+2. [Python开发规范](#二python开发规范)
+3. [项目结构](#三项目结构)
+4. [测试规范（TDD强制）](#四测试规范tdd强制)
+5. [UI设计系统](#五ui设计系统)
+6. [组件库规范](#六组件库规范)
+7. [多框架集成](#七多框架集成)
+8. [数据库规范](#八数据库规范)
+9. [高可用服务模式](#九高可用服务模式)
+10. [性能与可访问性](#十性能与可访问性)
+11. [安全与错误处理](#十一安全与错误处理)
+12. [开发工作流](#十二开发工作流)
+13. [全量适配矩阵](#十三全量适配矩阵)
+
+---
+
+## 一、核心哲学与架构
+
+### 1.1 纯Python全栈原则
+
+```
+原则一: 零标记语言
+  - 禁止编写 HTML、CSS、JS
+  - 所有界面与交互通过 Python 代码声明式定义
+  - 渲染目标（终端/Web/桌面）由适配器自动处理
+
+原则二: 调用链强制
+  - 所有可配置组件的输出方法必须返回 self
+  - 支持任意长度的链式调用
+  - 示例: ui.print("Hello").box("World").table(data).newline()
+
+原则三: 统一编程模型
+  - 终端、Web、桌面应用使用同一套组件 API
+  - 相同组件代码在所有后端产生一致的视觉与交互语义
+
+原则四: 异步优先
+  - 所有 I/O 操作提供 async 版本
+  - 同步版本作为兼容回退
+  - 内部通过 asyncio.run() 桥接
+```
+
+### 1.2 分层架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      应用层 (用户代码)                    │
+│              继承自 EchoApplication，编写业务逻辑          │
+├─────────────────────────────────────────────────────────┤
+│                    接口层 (interfaces/)                   │
+│         路由注册、请求/响应处理、WebSocket 管理             │
+├─────────────────────────────────────────────────────────┤
+│                    组件库 (components/)                   │
+│    ConsoleUI / BoxBuilder / TableBuilder / Spinner ...   │
+├───────────────────────┬─────────────────────────────────┤
+│    适配层 (adapters/)  │       核心引擎 (core/)            │
+│  aiohttp/Flask/tkinter │  渲染计算/渐变/动画/事件分发       │
+├───────────────────────┴─────────────────────────────────┤
+│                    工具集 (utils/)                        │
+│         日志、类型、验证、路径处理、平台检测                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 1.3 跨平台一致性规范
+
+```
+规则一: 视觉一致性
+  - 同一套组件代码在终端、Web、桌面渲染出的视觉语义必须一致
+  - 主题、圆角、间距、动画曲线全部统一
+
+规则二: 渐进降级
+  - 后端能力不足时（如终端不支持复杂动画），采用渐进降级
+  - 降级不能改变功能可用性，只能降低视觉复杂度
+  - 降级路径必须有单元测试覆盖
+
+规则三: 模式切换
+  - normal_mode=True: 降级模式（无颜色/动画），适用于 CI/无颜色终端
+  - normal_mode=False: 全特性模式（渐变/动画），默认值
+  - 通过 ECHOUI_NORMAL_MODE 环境变量可强制覆盖
+
+规则四: CJK 支持
+  - 全角字符宽度按 2 个英文字符处理
+  - 渐变索引按显示宽度（wcwidth）累计
+  - 所有布局计算使用 get_display_width() 而非 len()
+```
+
+---
+
+## 二、Python开发规范
+
+### 2.1 环境配置
+
+```bash
+# ============================================================
+# 虚拟环境（强制）
+# ============================================================
+
+# 创建（推荐 venv）
+python -m venv venv
+
+# 激活
+source venv/bin/activate       # Linux/macOS
+.\venv\Scripts\activate        # Windows
+
+# 或使用 conda（保留用户已有环境，不得删除）
+# 可用环境: py38 / py39 / py310 / py311 / py312 / py313 / py314
+
+# ============================================================
+# 依赖安装
+# ============================================================
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# 或使用 poetry
+poetry install --with dev
+
+# ============================================================
+# 必须的运行时依赖
+# ============================================================
+# typing-extensions>=4.7.0   (Python < 3.11 兼容性)
+# rich>=13.0.0               (终端渲染)
+# wcwidth>=0.2.0             (CJK 字符宽度计算)
+# aiohttp>=3.9.0             (Web 适配器)
+# psutil>=5.9.0              (性能等级检测)
+```
+
+### 2.2 代码风格强制要求
+
+```python
+# ============================================================
+# 每个 Python 文件必须以此开头（无例外）
+# ============================================================
+from __future__ import annotations
+
+# ============================================================
+# 类型注解 - 所有函数/方法必须包含完整类型注解
+# ============================================================
+
+# 正确示例
+def render_text(text: str, width: int, theme: str = "default") -> str:
+    """渲染文本为目标格式。"""
+    ...
+
+# 错误示例（禁止）
+def render_text(text, width, theme="default"):  # 缺少类型注解
+    ...
+
+# ============================================================
+# 不可变性 - 永远创建新对象，不修改现有对象
+# ============================================================
+
+# 正确示例
+from dataclasses import dataclass, replace
+
+@dataclass(frozen=True)
+class ThemeConfig:
+    primary_start: str
+    primary_end: str
+    border_style: str = "rounded"
+
+def with_border(config: ThemeConfig, style: str) -> ThemeConfig:
+    """返回修改了边框样式的新配置对象。"""
+    return replace(config, border_style=style)
+
+# 错误示例（禁止）
+def with_border(config: ThemeConfig, style: str) -> None:
+    config.border_style = style  # 原地修改 - 严格禁止
+
+# ============================================================
+# 函数规模限制
+# ============================================================
+# - 每个函数不超过 50 行
+# - 每个类不超过 400 行
+# - 每个文件不超过 800 行
+# - 嵌套深度不超过 4 层
+
+# ============================================================
+# 常量管理 - 禁止硬编码
+# ============================================================
+
+# 正确示例
+MAX_GRADIENT_STEPS: Final[int] = 256
+DEFAULT_BORDER_STYLE: Final[str] = "rounded"
+HEALTH_CHECK_INTERVAL: Final[int] = 15
+
+# 错误示例（禁止）
+def render() -> str:
+    return "=" * 80  # 硬编码宽度
+```
+
+### 2.3 命名规范
+
+```python
+# ============================================================
+# 命名约定
+# ============================================================
+
+# 组件类: PascalCase + 语义后缀
+class ConsoleUI: ...            # 主控制器
+class BoxBuilder: ...           # 构建器
+class GradientRenderer: ...     # 渲染器
+class TkinterAdapter: ...       # 适配器
+class StateManager: ...         # 管理器
+
+# 方法/属性: snake_case
+def render_text(self) -> str: ...
+def add_row(self, data: list[str]) -> TableBuilder: ...
+
+# 常量: UPPER_SNAKE_CASE
+MAX_RETRY_COUNT: Final[int] = 3
+DEFAULT_THEME: Final[str] = "default"
+
+# 私有成员: 单下划线前缀
+self._renderer: GradientRenderer
+self._state: dict[str, Any]
+def _compute_gradient(self) -> list[str]: ...
+
+# 参数名: 语义清晰，不缩写
+def render_progress_bar(
+    self,
+    current: int,          # 正确
+    total: int,            # 正确
+    # cur: int,            # 错误 - 禁止缩写
+    # n: int,              # 错误 - 禁止单字母（循环变量除外）
+) -> str: ...
+```
+
+### 2.4 文档字符串规范
+
+```python
+from __future__ import annotations
+
+from typing import Optional
+
+
+def render_gradient_text(
+    text: str,
+    start_color: str,
+    end_color: str,
+    width: Optional[int] = None,
+) -> str:
+    """将文本渲染为 ANSI 渐变彩色输出。
+
+    使用线性插值在 start_color 和 end_color 之间生成渐变，
+    CJK 全角字符按显示宽度 2 计算插值步进。
+
+    Args:
+        text: 待渲染的文本内容，支持 Unicode 和 CJK 字符。
+        start_color: 渐变起始颜色，十六进制格式（如 "#FF6B6B"）。
+        end_color: 渐变结束颜色，十六进制格式（如 "#4ECDC4"）。
+        width: 渲染宽度（字符数），为 None 时自动检测终端宽度。
+
+    Returns:
+        str: 包含 ANSI 转义序列的渐变着色字符串。
+            在 normal_mode 下返回原始文本（无转义序列）。
+
+    Raises:
+        ValueError: 当 start_color 或 end_color 格式不合法时抛出。
+        RenderError: 当渲染引擎内部错误时抛出。
+
+    Examples:
+        >>> renderer = GradientRenderer(normal_mode=True)
+        >>> result = renderer.render_text_ansi("Hello", "#FF0000", "#00FF00")
+        >>> result == "Hello"  # normal_mode 下返回原文
+        True
+        >>> renderer2 = GradientRenderer(normal_mode=False)
+        >>> "\\x1b[" in renderer2.render_text_ansi("Hi", "#FF6B6B", "#4ECDC4")
+        True
+    """
+    ...
+```
+
+### 2.5 错误处理规范
+
+```python
+from __future__ import annotations
+
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# 异常层次结构（必须严格遵守）
+# ============================================================
+
+class EchoError(Exception):
+    """EchoUI 框架异常基类。
+
+    所有框架级异常必须继承此类，便于用户统一捕获。
+    """
+
+
+class ConfigError(EchoError):
+    """配置错误：主题、组件参数、环境变量验证失败。"""
+
+
+class RenderError(EchoError):
+    """渲染错误：ANSI 输出、HTML 生成、布局计算失败。"""
+
+
+class AdapterError(EchoError):
+    """适配器错误：后端连接、路由注册、响应发送失败。"""
+
+
+class InputError(EchoError):
+    """输入错误：用户输入验证、IME 处理、文件上传校验失败。"""
+
+
+# ============================================================
+# 错误处理模式（三级分类）
+# ============================================================
+
+# 级别一: 关键路径 - 必须向上抛出，不得吞咽
+async def get_user(self, user_id: str) -> User:
+    """获取用户（关键路径示例）。"""
+    try:
+        user = await self._repository.find_by_id(user_id)
+        if user is None:
+            raise InputError(f"用户不存在: {user_id!r}")
+        return user
+    except InputError:
+        raise  # 直接重抛，保留原始堆栈
+    except Exception as exc:
+        logger.error(
+            "获取用户失败 user_id=%s: %s",
+            user_id,
+            exc,
+            exc_info=True,
+        )
+        raise AdapterError(f"获取用户失败: {exc}") from exc
+
+
+# 级别二: 非关键路径 - 捕获后记录日志，继续执行
+def _drop_animation_frame(self, frame_index: int) -> None:
+    """丢帧处理（非关键路径示例）。"""
+    try:
+        self._frame_buffer.pop(frame_index)
+    except IndexError as exc:
+        # 动画丢帧不影响功能，记录后继续
+        logger.warning("动画帧丢失 frame=%d: %s", frame_index, exc)
+
+
+# 级别三: UI 层 - 捕获所有异常，显示友好提示
+async def handle_request(self, request: object) -> None:
+    """请求处理（UI 层示例）。"""
+    try:
+        await self._process(request)
+    except EchoError as exc:
+        # 框架异常：显示友好提示
+        self._notification.error(str(exc))
+        logger.warning("框架异常: %s", exc, exc_info=True)
+    except Exception as exc:
+        # 未知异常：记录详情，显示通用提示
+        self._notification.error("操作失败，请稍后重试")
+        logger.error("未知异常: %s", exc, exc_info=True)
+
+
+# ============================================================
+# 输入验证（所有系统边界必须验证）
+# ============================================================
+
+import re
+from pathlib import Path
+
+_HEX_COLOR_PATTERN: re.Pattern[str] = re.compile(
+    r"^#[0-9A-Fa-f]{6}$"
+)
+_SAFE_FILENAME_PATTERN: re.Pattern[str] = re.compile(
+    r"^[a-zA-Z0-9_\-\.]+$"
+)
+
+ALLOWED_UPLOAD_EXTENSIONS: frozenset[str] = frozenset({
+    ".jpg", ".jpeg", ".png", ".gif", ".webp",
+    ".pdf", ".txt", ".csv", ".json",
+})
+MAX_UPLOAD_SIZE_BYTES: Final[int] = 10 * 1024 * 1024  # 10MB
+
+
+def validate_hex_color(color: str) -> str:
+    """验证并返回合法的十六进制颜色值。
+
+    Args:
+        color: 待验证的颜色字符串。
+
+    Returns:
+        str: 验证通过的颜色字符串。
+
+    Raises:
+        ConfigError: 当颜色格式不合法时抛出。
+
+    Examples:
+        >>> validate_hex_color("#FF6B6B")
+        '#FF6B6B'
+        >>> validate_hex_color("red")
+        Traceback (most recent call last):
+            ...
+        ConfigError: 颜色格式无效，期望 #RRGGBB 格式: 'red'
+    """
+    if not _HEX_COLOR_PATTERN.match(color):
+        raise ConfigError(f"颜色格式无效，期望 #RRGGBB 格式: {color!r}")
+    return color
+
+
+def validate_upload_file(
+    filename: str,
+    content: bytes,
+) -> tuple[str, bytes]:
+    """验证上传文件的合法性。
+
+    Args:
+        filename: 原始文件名。
+        content: 文件内容字节。
+
+    Returns:
+        tuple[str, bytes]: 经过验证和净化的（文件名, 内容）元组。
+
+    Raises:
+        InputError: 当文件类型不允许或大小超限时抛出。
+    """
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise InputError(
+            f"文件大小超出限制: {len(content)} > {MAX_UPLOAD_SIZE_BYTES}"
+        )
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_UPLOAD_EXTENSIONS:
+        raise InputError(
+            f"文件类型不允许: {suffix!r}，"
+            f"支持: {sorted(ALLOWED_UPLOAD_EXTENSIONS)}"
+        )
+    # 重命名为 UUID，避免路径遍历攻击
+    import uuid
+    safe_name = f"{uuid.uuid4().hex}{suffix}"
+    return safe_name, content
+```
+
+### 2.6 日志配置规范
+
+```python
+from __future__ import annotations
+
+import logging
+import logging.handlers
+import sys
+from pathlib import Path
+from typing import Optional
+
+
+def configure_logging(
+    log_level: str = "INFO",
+    log_file: Optional[Path] = None,
+    max_bytes: int = 10 * 1024 * 1024,
+    backup_count: int = 5,
+) -> None:
+    """配置全局日志系统。
+
+    统一日志格式: 时间 | 级别 | 模块:函数:行号 | 消息
+
+    Args:
+        log_level: 日志级别，默认 INFO。
+        log_file: 日志文件路径，None 时仅输出到控制台。
+        max_bytes: 单文件最大字节数，超出时轮转，默认 10MB。
+        backup_count: 保留的历史文件数，默认 5。
+
+    Examples:
+        >>> configure_logging("DEBUG", Path("logs/echoui.log"))
+    """
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+
+    formatter = logging.Formatter(
+        fmt=(
+            "%(asctime)s | %(levelname)-8s | "
+            "%(name)s:%(funcName)s:%(lineno)d | %(message)s"
+        ),
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            filename=log_file,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+```
+
+---
+
+## 三、项目结构
+
+### 3.1 目录布局
+
+```
+echoui/
+├── src/
+│   └── echoui/
+│       ├── __init__.py                  # 公开 API 导出
+│       ├── core/                        # 核心引擎层
+│       │   ├── __init__.py
+│       │   ├── renderer.py              # GradientRenderer - 渐变计算引擎
+│       │   ├── animator.py              # 动画帧调度器
+│       │   ├── event_bus.py             # 跨组件事件总线
+│       │   ├── state.py                 # 响应式状态管理
+│       │   ├── theme.py                 # 主题系统（9 种内置主题）
+│       │   ├── layout.py               # 流体布局计算（14 级断点）
+│       │   ├── typography.py            # 排版系统（clamp 字号）
+│       │   └── platform_detector.py    # 平台/性能等级检测
+│       ├── components/                  # 组件库层
+│       │   ├── __init__.py
+│       │   ├── console_ui.py            # ConsoleUI - 主控制器
+│       │   ├── box_builder.py           # BoxBuilder
+│       │   ├── ascii_art_builder.py     # AsciiArtBuilder
+│       │   ├── table_builder.py         # TableBuilder
+│       │   ├── panel_builder.py         # PanelBuilder
+│       │   ├── progress_bar.py          # ProgressBar
+│       │   ├── spinner.py               # Spinner
+│       │   ├── stream_writer.py         # StreamWriter
+│       │   ├── async_input.py           # AsyncInput
+│       │   ├── interactive_selector.py  # InteractiveSelector
+│       │   ├── confirm_dialog.py        # ConfirmDialog
+│       │   ├── timer.py                 # Timer
+│       │   ├── notification.py          # Notification
+│       │   ├── key_value_list.py        # KeyValueList
+│       │   ├── multi_line_input.py      # MultiLineInput
+│       │   ├── pager.py                 # Pager
+│       │   ├── countdown.py             # Countdown
+│       │   ├── column_layout.py         # ColumnLayout
+│       │   └── tree_view.py             # TreeView
+│       ├── adapters/                    # 适配层
+│       │   ├── __init__.py
+│       │   ├── base_adapter.py          # BaseAdapter 抽象基类
+│       │   ├── terminal_adapter.py      # TerminalAdapter
+│       │   ├── aiohttp_adapter.py       # AiohttpAdapter
+│       │   ├── flask_adapter.py         # FlaskAdapter
+│       │   ├── fastapi_adapter.py       # FastAPIAdapter
+│       │   ├── tkinter_adapter.py       # TkinterAdapter
+│       │   └── pyqt_adapter.py          # PyQtAdapter
+│       ├── db/                          # 数据库 ORM 层
+│       │   ├── __init__.py
+│       │   ├── model.py                 # Model 基类
+│       │   ├── field.py                 # Field 类型系统
+│       │   ├── session.py               # Session / AsyncSession
+│       │   ├── query_builder.py         # 链式查询构建器
+│       │   └── migration.py             # 自动迁移
+│       ├── interfaces/                  # 接口层
+│       │   ├── __init__.py
+│       │   ├── router.py                # 路由注册
+│       │   └── websocket_manager.py     # WebSocket 管理
+│       └── utils/                       # 工具集
+│           ├── __init__.py
+│           ├── color.py                 # 颜色解析/转换
+│           ├── text.py                  # CJK 宽度、截断、对齐
+│           ├── path_utils.py            # 跨平台路径工具
+│           ├── compat.py                # Python 3.8–3.14 兼容层
+│           └── validators.py            # 通用验证函数
+├── tests/
+│   ├── conftest.py                      # 共享 fixture
+│   ├── unit/
+│   │   ├── core/
+│   │   │   ├── test_renderer.py
+│   │   │   ├── test_theme.py
+│   │   │   ├── test_layout.py
+│   │   │   └── test_state.py
+│   │   ├── components/
+│   │   │   ├── test_console_ui.py
+│   │   │   ├── test_box_builder.py
+│   │   │   ├── test_table_builder.py
+│   │   │   └── test_progress_bar.py
+│   │   └── utils/
+│   │       ├── test_color.py
+│   │       ├── test_text.py
+│   │       └── test_validators.py
+│   ├── integration/
+│   │   ├── test_aiohttp_adapter.py
+│   │   ├── test_terminal_adapter.py
+│   │   └── test_db_session.py
+│   └── e2e/
+│       ├── test_chat_flow.py
+│       ├── test_form_flow.py
+│       └── test_dashboard_flow.py
+├── docs/
+│   ├── architecture.md
+│   ├── components.md
+│   └── examples/
+├── examples/
+│   ├── terminal_demo.py
+│   ├── web_demo.py
+│   └── desktop_demo.py
+├── .coveragerc
+├── .pylintrc
+├── pyproject.toml
+├── requirements.txt
+├── requirements-dev.txt
+└── README.md
+```
+
+### 3.2 公开 API 导出规范
+
+```python
+# src/echoui/__init__.py
+from __future__ import annotations
+
+# 核心引擎
+from echoui.core.renderer import GradientRenderer
+from echoui.core.theme import Theme, ThemeConfig
+from echoui.core.state import State
+from echoui.core.event_bus import EventBus
+
+# 主控制器
+from echoui.components.console_ui import ConsoleUI
+
+# 常用组件（按需导入更优，此处暴露最常用）
+from echoui.components.box_builder import BoxBuilder
+from echoui.components.table_builder import TableBuilder
+from echoui.components.progress_bar import ProgressBar
+from echoui.components.spinner import Spinner
+from echoui.components.notification import Notification
+
+# 适配器
+from echoui.adapters.terminal_adapter import TerminalAdapter
+from echoui.adapters.aiohttp_adapter import AiohttpAdapter
+
+# 异常
+from echoui.core.exceptions import (
+    EchoError,
+    ConfigError,
+    RenderError,
+    AdapterError,
+    InputError,
+)
+
+__version__: str = "2.0.0"
+__all__: list[str] = [
+    "GradientRenderer",
+    "Theme",
+    "ThemeConfig",
+    "State",
+    "EventBus",
+    "ConsoleUI",
+    "BoxBuilder",
+    "TableBuilder",
+    "ProgressBar",
+    "Spinner",
+    "Notification",
+    "TerminalAdapter",
+    "AiohttpAdapter",
+    "EchoError",
+    "ConfigError",
+    "RenderError",
+    "AdapterError",
+    "InputError",
+]
+```
+
+---
+
+## 四、测试规范（TDD强制）
+
+### 4.1 覆盖率要求
+
+```
+核心引擎 (echoui.core)       >= 95%
+组件库 (echoui.components)   >= 90%
+适配层 (echoui.adapters)     >= 80%
+工具集 (echoui.utils)        >= 90%
+整体项目                      >= 90%
+
+违反覆盖率要求 = 不符合生产就绪标准 = CI 流水线必须失败
+```
+
+### 4.2 conftest.py
+
+```python
+# tests/conftest.py
+from __future__ import annotations
+
+import asyncio
+import sys
+from pathlib import Path
+from typing import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+import pytest_asyncio
+
+from echoui.core.renderer import GradientRenderer
+from echoui.core.theme import Theme, ThemeConfig
+from echoui.components.console_ui import ConsoleUI
+from echoui.adapters.terminal_adapter import TerminalAdapter
+
+
+# ============================================================
+# 事件循环 fixture（跨版本跨平台兼容）
+# ============================================================
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """创建跨平台兼容的会话级事件循环。
+
+    Windows 使用 SelectorEventLoop 以兼容 aiohttp 等库。
+    """
+    if sys.platform == "win32":
+        policy: asyncio.AbstractEventLoopPolicy = (
+            asyncio.WindowsSelectorEventLoopPolicy()
+        )
+        asyncio.set_event_loop_policy(policy)
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+# ============================================================
+# 渲染器 fixture
+# ============================================================
+
+@pytest.fixture
+def normal_renderer() -> GradientRenderer:
+    """降级模式渲染器（无 ANSI 序列，适合快照测试）。"""
+    return GradientRenderer(normal_mode=True)
+
+
+@pytest.fixture
+def gradient_renderer() -> GradientRenderer:
+    """全特性渐变渲染器。"""
+    return GradientRenderer(normal_mode=False)
+
+
+# ============================================================
+# 主题 fixture
+# ============================================================
+
+@pytest.fixture
+def default_theme() -> ThemeConfig:
+    """返回默认主题配置。"""
+    return Theme.get("default")
+
+
+@pytest.fixture
+def ocean_theme() -> ThemeConfig:
+    """返回 ocean 主题配置。"""
+    return Theme.get("ocean")
+
+
+# ============================================================
+# 组件 fixture
+# ============================================================
+
+@pytest.fixture
+def console_ui(normal_renderer: GradientRenderer) -> ConsoleUI:
+    """返回降级模式 ConsoleUI 实例（测试用）。"""
+    return ConsoleUI(renderer=normal_renderer, normal_mode=True)
+
+
+@pytest.fixture
+def terminal_adapter(console_ui: ConsoleUI) -> TerminalAdapter:
+    """返回绑定了测试 ConsoleUI 的终端适配器。"""
+    return TerminalAdapter(ui=console_ui)
+
+
+# ============================================================
+# 数据 fixture
+# ============================================================
+
+@pytest.fixture
+def sample_table_data() -> list[list[str]]:
+    """提供测试用表格数据。"""
+    return [
+        ["ID", "名称", "状态"],
+        ["001", "张三", "活跃"],
+        ["002", "李四", "离线"],
+        ["003", "王五", "活跃"],
+    ]
+
+
+@pytest.fixture
+def sample_tree_data() -> dict[str, object]:
+    """提供测试用树形数据。"""
+    return {
+        "name": "根节点",
+        "children": [
+            {"name": "子节点A", "children": []},
+            {
+                "name": "子节点B",
+                "children": [
+                    {"name": "孙节点B1", "children": []},
+                ],
+            },
+        ],
+    }
+
+
+# ============================================================
+# 异步数据库 fixture（集成测试用）
+# ============================================================
+
+@pytest.fixture
+async def db_session() -> AsyncGenerator[object, None]:
+    """提供测试用内存 SQLite 异步会话。"""
+    from echoui.db.session import AsyncSession
+    session = AsyncSession(url="sqlite+aiosqlite:///:memory:")
+    await session.initialize()
+    try:
+        yield session
+    finally:
+        await session.close()
+```
+
+### 4.3 单元测试规范
+
+```python
+# tests/unit/core/test_renderer.py
+from __future__ import annotations
+
+import pytest
+
+from echoui.core.renderer import GradientRenderer
+from echoui.core.exceptions import ConfigError, RenderError
+
+
+class TestGradientRendererInit:
+    """渐变渲染器初始化测试。"""
+
+    def test_creates_with_normal_mode_true(self) -> None:
+        """测试 normal_mode=True 时正常创建。"""
+        renderer = GradientRenderer(normal_mode=True)
+        assert renderer.normal_mode is True
+
+    def test_creates_with_normal_mode_false(self) -> None:
+        """测试 normal_mode=False 时正常创建。"""
+        renderer = GradientRenderer(normal_mode=False)
+        assert renderer.normal_mode is False
+
+    def test_default_normal_mode_is_false(self) -> None:
+        """测试默认 normal_mode 为 False（全特性模式）。"""
+        renderer = GradientRenderer()
+        assert renderer.normal_mode is False
+
+
+class TestRenderTextAnsi:
+    """ANSI 渐变文本渲染测试。"""
+
+    def test_normal_mode_returns_plain_text(
+        self, normal_renderer: GradientRenderer
+    ) -> None:
+        """normal_mode 下应返回不含 ANSI 序列的纯文本。"""
+        result = normal_renderer.render_text_ansi(
+            "Hello", "#FF6B6B", "#4ECDC4"
+        )
+        assert result == "Hello"
+        assert "\x1b[" not in result
+
+    def test_gradient_mode_contains_ansi_sequences(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """全特性模式下应包含 ANSI 转义序列。"""
+        result = gradient_renderer.render_text_ansi(
+            "Hello", "#FF6B6B", "#4ECDC4"
+        )
+        assert "\x1b[" in result
+
+    def test_empty_text_returns_empty_string(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """空文本输入应返回空字符串。"""
+        result = gradient_renderer.render_text_ansi("", "#FF6B6B", "#4ECDC4")
+        assert result == ""
+
+    def test_invalid_start_color_raises_config_error(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """无效起始颜色应抛出 ConfigError。"""
+        with pytest.raises(ConfigError, match="颜色格式无效"):
+            gradient_renderer.render_text_ansi("Hi", "red", "#4ECDC4")
+
+    def test_invalid_end_color_raises_config_error(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """无效结束颜色应抛出 ConfigError。"""
+        with pytest.raises(ConfigError, match="颜色格式无效"):
+            gradient_renderer.render_text_ansi("Hi", "#FF6B6B", "blue")
+
+    @pytest.mark.parametrize(
+        "text, expected_display_width",
+        [
+            ("Hello", 5),
+            ("你好", 4),          # 2 个全角字符，各占 2 宽度
+            ("Hi你好", 7),        # 2 + 4 = 6... 按 wcwidth 计算
+            ("", 0),
+        ],
+    )
+    def test_cjk_display_width_calculation(
+        self,
+        gradient_renderer: GradientRenderer,
+        text: str,
+        expected_display_width: int,
+    ) -> None:
+        """CJK 字符必须按显示宽度（wcwidth）计算渐变步进。"""
+        width = gradient_renderer.get_display_width(text)
+        assert width == expected_display_width
+
+    @pytest.mark.parametrize(
+        "start_color, end_color",
+        [
+            ("#FF6B6B", "#4ECDC4"),
+            ("#000000", "#FFFFFF"),
+            ("#AABBCC", "#112233"),
+        ],
+    )
+    def test_various_valid_color_combinations(
+        self,
+        gradient_renderer: GradientRenderer,
+        start_color: str,
+        end_color: str,
+    ) -> None:
+        """多种有效颜色组合应正常渲染。"""
+        result = gradient_renderer.render_text_ansi(
+            "Test", start_color, end_color
+        )
+        assert len(result) > 0
+
+
+class TestRenderProgressBar:
+    """进度条渲染测试。"""
+
+    def test_zero_progress(self, gradient_renderer: GradientRenderer) -> None:
+        """0% 进度应正确渲染。"""
+        result = gradient_renderer.render_progress_bar(0, 100, width=20)
+        assert result is not None
+
+    def test_full_progress(self, gradient_renderer: GradientRenderer) -> None:
+        """100% 进度应正确渲染。"""
+        result = gradient_renderer.render_progress_bar(100, 100, width=20)
+        assert result is not None
+
+    def test_progress_exceeds_total_raises_error(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """进度超出总量应抛出 ConfigError。"""
+        with pytest.raises(ConfigError, match="进度值不能超过总量"):
+            gradient_renderer.render_progress_bar(101, 100, width=20)
+
+    def test_negative_progress_raises_error(
+        self, gradient_renderer: GradientRenderer
+    ) -> None:
+        """负进度值应抛出 ConfigError。"""
+        with pytest.raises(ConfigError, match="进度值不能为负"):
+            gradient_renderer.render_progress_bar(-1, 100, width=20)
+```
+
+### 4.4 集成测试规范
+
+```python
+# tests/integration/test_aiohttp_adapter.py
+from __future__ import annotations
+
+import pytest
+from aiohttp.test_utils import TestClient, TestServer
+
+from echoui.adapters.aiohttp_adapter import AiohttpAdapter
+from echoui.components.console_ui import ConsoleUI
+from echoui.core.renderer import GradientRenderer
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_aiohttp_adapter_serves_index_route() -> None:
+    """测试 AiohttpAdapter 正确响应根路由。"""
+    renderer = GradientRenderer(normal_mode=True)
+    ui = ConsoleUI(renderer=renderer, normal_mode=True)
+    adapter = AiohttpAdapter(ui=ui, host="127.0.0.1", port=0)
+
+    # 注册测试路由
+    @adapter.get("/")
+    async def index() -> dict[str, str]:
+        return {"status": "ok", "framework": "echoui"}
+
+    async with TestClient(TestServer(adapter.app)) as client:
+        response = await client.get("/")
+        assert response.status == 200
+        data = await response.json()
+        assert data["status"] == "ok"
+        assert data["framework"] == "echoui"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_aiohttp_adapter_handles_404() -> None:
+    """测试 AiohttpAdapter 对未注册路由返回 404。"""
+    renderer = GradientRenderer(normal_mode=True)
+    ui = ConsoleUI(renderer=renderer, normal_mode=True)
+    adapter = AiohttpAdapter(ui=ui, host="127.0.0.1", port=0)
+
+    async with TestClient(TestServer(adapter.app)) as client:
+        response = await client.get("/nonexistent")
+        assert response.status == 404
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_db_session_crud(db_session: object) -> None:
+    """测试数据库会话基本 CRUD 操作。"""
+    from echoui.db.model import Model
+    from echoui.db.field import Field
+
+    class TestUser(Model):
+        __tablename__ = "test_users"
+        name = Field(str, max_length=50, nullable=False)
+        email = Field(str, unique=True)
+
+    await db_session.create_table(TestUser)
+
+    # 创建
+    user = await db_session.save(TestUser(name="张三", email="test@example.com"))
+    assert user.id is not None
+
+    # 查询
+    found = await db_session.find_by_id(TestUser, user.id)
+    assert found is not None
+    assert found.name == "张三"
+
+    # 更新（不可变模式，返回新对象）
+    updated = await db_session.update(
+        TestUser, user.id, {"name": "李四"}
+    )
+    assert updated.name == "李四"
+    assert updated.id == user.id
+
+    # 删除
+    await db_session.delete(TestUser, user.id)
+    deleted = await db_session.find_by_id(TestUser, user.id)
+    assert deleted is None
+```
+
+### 4.5 E2E测试规范
+
+```python
+# tests/e2e/test_chat_flow.py
+from __future__ import annotations
+
+import asyncio
+from io import StringIO
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from echoui.components.console_ui import ConsoleUI
+from echoui.components.async_input import AsyncInput
+from echoui.core.renderer import GradientRenderer
+
+
+@pytest.mark.asyncio
+@pytest.mark.e2e
+async def test_complete_chat_session_flow() -> None:
+    """端到端测试: 模拟完整聊天会话流程。
+
+    流程:
+    1. 启动 ConsoleUI
+    2. 显示欢迎界面
+    3. 用户输入消息
+    4. 系统显示响应气泡
+    5. 用户输入 /quit 退出
+    """
+    renderer = GradientRenderer(normal_mode=True)
+    ui = ConsoleUI(renderer=renderer, normal_mode=True)
+
+    # 模拟用户输入序列
+    input_sequence = ["你好，EchoUI!", "/quit"]
+    input_iter = iter(input_sequence)
+
+    async def mock_readline(prompt: str) -> str:
+        try:
+            return next(input_iter)
+        except StopIteration:
+            return "/quit"
+
+    output_buffer = StringIO()
+
+    with patch.object(ui, "_output_stream", output_buffer):
+        with patch(
+            "echoui.components.async_input.AsyncInput.readline",
+            side_effect=mock_readline,
+        ):
+            # 启动聊天会话（超时保护）
+            try:
+                await asyncio.wait_for(
+                    ui.run_chat_session(
+                        welcome="欢迎使用 EchoUI",
+                        quit_command="/quit",
+                    ),
+                    timeout=5.0,
+                )
+            except asyncio.TimeoutError:
+                pytest.fail("聊天会话未在预期时间内结束")
+
+    output = output_buffer.getvalue()
+    assert "欢迎使用 EchoUI" in output
+    assert "你好，EchoUI!" in output
+
+
+@pytest.mark.asyncio
+@pytest.mark.e2e
+async def test_form_submission_flow() -> None:
+    """端到端测试: 模拟表单填写与提交流程。"""
+    renderer = GradientRenderer(normal_mode=True)
+    ui = ConsoleUI(renderer=renderer, normal_mode=True)
+
+    submitted_data: dict[str, str] = {}
+
+    async def handle_submit(data: dict[str, str]) -> None:
+        submitted_data.update(data)
+
+    input_sequence = ["张三", "zhangsan@example.com", "确认"]
+    input_iter = iter(input_sequence)
+
+    async def mock_readline(prompt: str) -> str:
+        return next(input_iter)
+
+    with patch(
+        "echoui.components.async_input.AsyncInput.readline",
+        side_effect=mock_readline,
+    ):
+        await ui.run_form(
+            fields=["姓名", "邮箱"],
+            on_submit=handle_submit,
+        )
+
+    assert submitted_data["姓名"] == "张三"
+    assert submitted_data["邮箱"] == "zhangsan@example.com"
+```
+
+### 4.6 测试质量检查命令
+
+```bash
+# ============================================================
+# 完整测试套件（含覆盖率报告）
+# ============================================================
+pytest \
+    --cov=src/echoui \
+    --cov-report=html:htmlcov \
+    --cov-report=term-missing \
+    --cov-report=xml:coverage.xml \
+    -v
+
+# 仅运行核心引擎测试（验证 95% 覆盖率）
+pytest tests/unit/core/ \
+    --cov=src/echoui/core \
+    --cov-report=term-missing \
+    --cov-fail-under=95
+
+# 按标记过滤
+pytest -m "not slow and not e2e" -v        # 快速反馈
+pytest -m "integration" -v                  # 仅集成测试
+pytest -m "e2e" -v                          # 仅 E2E 测试
+
+# 运行 doctest
+pytest --doctest-modules src/echoui/ -v
+
+# 一键完整质量检查
+black src/ tests/ && \
+isort src/ tests/ && \
+mypy src/ --strict && \
+pylint src/echoui/ && \
+pytest \
+    --cov=src/echoui \
+    --cov-report=term-missing \
+    --cov-fail-under=90 \
+    --doctest-modules src/echoui/ \
+    -v
+```
+
+---
+
+## 五、UI设计系统
+
+### 5.1 视口断点系统（14级）
+
+```python
+# src/echoui/core/layout.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
+
+
+class Breakpoint(str, Enum):
+    """14 级视口断点枚举。"""
+
+    XS3 = "3xs"    # <=179px
+    XS2 = "2xs"    # 180–239px
+    XS  = "xs"     # 240–319px
+    SM  = "sm"     # 320–479px
+    MD  = "md"     # 480–639px
+    LG  = "lg"     # 640–767px
+    XL  = "xl"     # 768–1023px
+    XL2 = "2xl"    # 1024–1279px
+    XL3 = "3xl"    # 1280–1535px
+    XL4 = "4xl"    # 1536–1919px
+    XL5 = "5xl"    # 1920–2559px
+    XL6 = "6xl"    # 2560–3839px
+    XL7 = "7xl"    # 3840–5119px
+    XL8 = "8xl"    # 5120+px
+
+
+@dataclass(frozen=True)
+class BreakpointConfig:
+    """单个断点的完整布局配置。
+
+    Attributes:
+        name: 断点名称。
+        min_width: 最小视口宽度（px），None 表示无下限。
+        max_width: 最大视口宽度（px），None 表示无上限。
+        layout_mode: 布局模式（single/double/triple/multi）。
+        sidebar_behavior: 侧栏行为描述。
+        sidebar_width: 侧栏宽度（px），0 表示隐藏。
+        content_density: 内容密度等级（low/medium/high/ultra）。
+        bg_shape_max: 背景装饰图形最大数量。
+        bg_echo_max: 背景残影最大数量。
+    """
+
+    name: Breakpoint
+    min_width: Optional[int]
+    max_width: Optional[int]
+    layout_mode: str
+    sidebar_behavior: str
+    sidebar_width: int
+    content_density: str
+    bg_shape_max: int
+    bg_echo_max: int
+
+
+# 断点完整配置表（权威数据源，所有计算引用此处）
+BREAKPOINT_CONFIGS: tuple[BreakpointConfig, ...] = (
+    BreakpointConfig(
+        name=Breakpoint.XS3, min_width=None, max_width=179,
+        layout_mode="single", sidebar_behavior="手势触发",
+        sidebar_width=0, content_density="ultra-low",
+        bg_shape_max=0, bg_echo_max=0,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XS2, min_width=180, max_width=239,
+        layout_mode="single", sidebar_behavior="底部菜单",
+        sidebar_width=0, content_density="low",
+        bg_shape_max=0, bg_echo_max=0,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XS, min_width=240, max_width=319,
+        layout_mode="single", sidebar_behavior="抽屉",
+        sidebar_width=0, content_density="low",
+        bg_shape_max=0, bg_echo_max=0,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.SM, min_width=320, max_width=479,
+        layout_mode="single", sidebar_behavior="抽屉(85%宽)",
+        sidebar_width=0, content_density="low",
+        bg_shape_max=2, bg_echo_max=2,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.MD, min_width=480, max_width=639,
+        layout_mode="single", sidebar_behavior="抽屉(70%宽)",
+        sidebar_width=0, content_density="medium",
+        bg_shape_max=2, bg_echo_max=2,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.LG, min_width=640, max_width=767,
+        layout_mode="single", sidebar_behavior="条件显示",
+        sidebar_width=0, content_density="medium",
+        bg_shape_max=2, bg_echo_max=2,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL, min_width=768, max_width=1023,
+        layout_mode="double", sidebar_behavior="侧边抽屉",
+        sidebar_width=220, content_density="medium",
+        bg_shape_max=2, bg_echo_max=4,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL2, min_width=1024, max_width=1279,
+        layout_mode="double", sidebar_behavior="侧边常驻",
+        sidebar_width=240, content_density="medium-high",
+        bg_shape_max=2, bg_echo_max=4,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL3, min_width=1280, max_width=1535,
+        layout_mode="triple", sidebar_behavior="两侧常驻",
+        sidebar_width=256, content_density="high",
+        bg_shape_max=3, bg_echo_max=6,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL4, min_width=1536, max_width=1919,
+        layout_mode="triple", sidebar_behavior="两侧常驻",
+        sidebar_width=280, content_density="high",
+        bg_shape_max=3, bg_echo_max=6,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL5, min_width=1920, max_width=2559,
+        layout_mode="triple", sidebar_behavior="两侧常驻(居中约束)",
+        sidebar_width=300, content_density="high",
+        bg_shape_max=3, bg_echo_max=6,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL6, min_width=2560, max_width=3839,
+        layout_mode="triple", sidebar_behavior="两侧常驻(边距扩展)",
+        sidebar_width=360, content_density="ultra",
+        bg_shape_max=5, bg_echo_max=10,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL7, min_width=3840, max_width=5119,
+        layout_mode="multi", sidebar_behavior="两侧常驻",
+        sidebar_width=480, content_density="ultra",
+        bg_shape_max=5, bg_echo_max=10,
+    ),
+    BreakpointConfig(
+        name=Breakpoint.XL8, min_width=5120, max_width=None,
+        layout_mode="multi", sidebar_behavior="两侧常驻",
+        sidebar_width=560, content_density="ultra",
+        bg_shape_max=5, bg_echo_max=10,
+    ),
+)
+
+
+def resolve_breakpoint(viewport_width: int) -> BreakpointConfig:
+    """根据视口宽度解析对应的断点配置。
+
+    Args:
+        viewport_width: 当前视口宽度（px），必须为正整数。
+
+    Returns:
+        BreakpointConfig: 匹配的断点配置。
+
+    Raises:
+        ConfigError: 当 viewport_width 为负数时抛出。
+
+    Examples:
+        >>> config = resolve_breakpoint(1024)
+        >>> config.name == Breakpoint.XL2
+        True
+        >>> resolve_breakpoint(320).name == Breakpoint.SM
+        True
+    """
+    from echoui.core.exceptions import ConfigError
+
+    if viewport_width < 0:
+        raise ConfigError(f"视口宽度不能为负数: {viewport_width}")
+
+    for config in BREAKPOINT_CONFIGS:
+        min_ok = config.min_width is None or viewport_width >= config.min_width
+        max_ok = config.max_width is None or viewport_width <= config.max_width
+        if min_ok and max_ok:
+            return config
+
+    # 回退到最大断点（理论上不会触发）
+    return BREAKPOINT_CONFIGS[-1]
+```
+
+### 5.2 流体排版系统
+
+```python
+# src/echoui/core/typography.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Final
+
+
+@dataclass(frozen=True)
+class FluidTypeScale:
+    """流体字号配置（clamp 三值插值）。
+
+    Attributes:
+        variable: CSS 变量名（也用作标识符）。
+        min_rem: 最小字号（rem），在 320px 视口时生效。
+        preferred_intercept: 插值基础值（rem）。
+        preferred_vw_coefficient: 视口宽度系数（vw 乘数）。
+        max_rem: 最大字号（rem），在 1920px 视口时生效。
+        line_height: 对应的行高比例。
+    """
+
+    variable: str
+    min_rem: float
+    preferred_intercept: float
+    preferred_vw_coefficient: float
+    max_rem: float
+    line_height: float
+
+    def to_css_clamp(self) -> str:
+        """生成对应的 CSS clamp() 函数字符串。
+
+        Returns:
+            str: 形如 "clamp(Xrem, Yrem + Zvw, Wrem)" 的字符串。
+
+        Examples:
+            >>> scale = TYPE_SCALE_MAP["body"]
+            >>> "clamp(" in scale.to_css_clamp()
+            True
+        """
+        return (
+            f"clamp("
+            f"{self.min_rem}rem, "
+            f"{self.preferred_intercept}rem + {self.preferred_vw_coefficient}vw, "
+            f"{self.max_rem}rem)"
+        )
+
+    def compute_px(self, viewport_width: int) -> float:
+        """在给定视口宽度下计算实际字号（px）。
+
+        用于终端和桌面端的字号近似计算（1rem = 16px 基准）。
+
+        Args:
+            viewport_width: 视口宽度（px）。
+
+        Returns:
+            float: 实际字号（px），已被 clamp 约束在 min/max 范围内。
+
+        Examples:
+            >>> scale = TYPE_SCALE_MAP["body"]
+            >>> px = scale.compute_px(1024)
+            >>> scale.min_rem * 16 <= px <= scale.max_rem * 16
+            True
+        """
+        base_px: Final[int] = 16
+        min_px = self.min_rem * base_px
+        max_px = self.max_rem * base_px
+        preferred_px = (
+            self.preferred_intercept * base_px
+            + self.preferred_vw_coefficient * viewport_width / 100
+        )
+        return max(min_px, min(preferred_px, max_px))
+
+
+# 权威字号阶梯表
+TYPE_SCALE_MAP: dict[str, FluidTypeScale] = {
+    "display": FluidTypeScale(
+        variable="--fs-display",
+        min_rem=1.5, preferred_intercept=1.0,
+        preferred_vw_coefficient=2.5, max_rem=3.5,
+        line_height=1.25,
+    ),
+    "h1": FluidTypeScale(
+        variable="--fs-h1",
+        min_rem=1.25, preferred_intercept=0.9,
+        preferred_vw_coefficient=1.75, max_rem=2.5,
+        line_height=1.25,
+    ),
+    "h2": FluidTypeScale(
+        variable="--fs-h2",
+        min_rem=1.125, preferred_intercept=0.95,
+        preferred_vw_coefficient=0.875, max_rem=1.75,
+        line_height=1.25,
+    ),
+    "h3": FluidTypeScale(
+        variable="--fs-h3",
+        min_rem=1.0, preferred_intercept=0.9,
+        preferred_vw_coefficient=0.5, max_rem=1.375,
+        line_height=1.25,
+    ),
+    "body": FluidTypeScale(
+        variable="--fs-body",
+        min_rem=0.875, preferred_intercept=0.825,
+        preferred_vw_coefficient=0.25, max_rem=1.125,
+        line_height=1.6,
+    ),
+    "small": FluidTypeScale(
+        variable="--fs-small",
+        min_rem=0.75, preferred_intercept=0.72,
+        preferred_vw_coefficient=0.15, max_rem=0.9375,
+        line_height=1.5,
+    ),
+    "caption": FluidTypeScale(
+        variable="--fs-caption",
+        min_rem=0.6875, preferred_intercept=0.66,
+        preferred_vw_coefficient=0.14, max_rem=0.8125,
+        line_height=1.5,
+    ),
+    "micro": FluidTypeScale(
+        variable="--fs-micro",
+        min_rem=0.5625, preferred_intercept=0.55,
+        preferred_vw_coefficient=0.0625, max_rem=0.6875,
+        line_height=1.5,
+    ),
+}
+
+# 正文段落最大宽度约束
+BODY_MAX_CHARS: str = "clamp(28ch, 50vw, 72ch)"
+
+# 消息气泡最大宽度约束
+BUBBLE_MAX_CHARS: str = "clamp(20ch, 70vw, 60ch)"
+```
+
+### 5.3 流体间距系统
+
+```python
+# src/echoui/core/spacing.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Final
+
+
+@dataclass(frozen=True)
+class SpacingScale:
+    """流体间距配置（基于 4px 网格，clamp 插值）。
+
+    Attributes:
+        variable: CSS 变量名。
+        min_px: 最小间距（px）。
+        max_px: 最大间距（px）。
+    """
+
+    variable: str
+    min_px: int
+    max_px: int
+
+    def compute_px(self, viewport_width: int) -> float:
+        """在给定视口宽度下计算实际间距（px）。
+
+        Args:
+            viewport_width: 视口宽度（px）。
+
+        Returns:
+            float: 实际间距（px）。
+
+        Examples:
+            >>> scale = SPACING_MAP["md"]
+            >>> scale.compute_px(320) == scale.min_px
+            True
+            >>> scale.compute_px(1920) == scale.max_px
+            True
+        """
+        min_vp: Final[int] = 320
+        max_vp: Final[int] = 1920
+        t = (viewport_width - min_vp) / (max_vp - min_vp)
+        t = max(0.0, min(1.0, t))
+        return self.min_px + (self.max_px - self.min_px) * t
+
+
+# 间距阶梯（4px 网格，共 9 级）
+SPACING_MAP: dict[str, SpacingScale] = {
+    "3xs": SpacingScale("--space-3xs", min_px=2,  max_px=4),
+    "2xs": SpacingScale("--space-2xs", min_px=4,  max_px=8),
+    "xs":  SpacingScale("--space-xs",  min_px=6,  max_px=12),
+    "sm":  SpacingScale("--space-sm",  min_px=8,  max_px=16),
+    "md":  SpacingScale("--space-md",  min_px=12, max_px=24),
+    "lg":  SpacingScale("--space-lg",  min_px=16, max_px=32),
+    "xl":  SpacingScale("--space-xl",  min_px=24, max_px=48),
+    "2xl": SpacingScale("--space-2xl", min_px=32, max_px=64),
+    "3xl": SpacingScale("--space-3xl", min_px=48, max_px=96),
+}
+
+# 页面边距（特殊处理，4K+ 扩展至 64px）
+PAGE_PADDING_MIN: Final[int] = 8    # 320px 视口
+PAGE_PADDING_MAX: Final[int] = 32   # 1920px 视口
+PAGE_PADDING_4K:  Final[int] = 64   # 3840px+ 视口
+```
+
+### 5.4 主题系统
+
+```python
+# src/echoui/core/theme.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import ClassVar
+
+from echoui.core.exceptions import ConfigError
+from echoui.utils.validators import validate_hex_color
+
+
+@dataclass(frozen=True)
+class ThemeConfig:
+    """主题配置值对象（不可变）。
+
+    包含主题所需的全部颜色令牌，所有颜色均为 #RRGGBB 格式。
+
+    Attributes:
+        name: 主题唯一标识符。
+        primary_start: 主色渐变起始色。
+        primary_end: 主色渐变结束色。
+        border_start: 边框渐变起始色。
+        border_end: 边框渐变结束色。
+        accent_start: 强调色渐变起始色。
+        accent_end: 强调色渐变结束色。
+        success: 成功状态色。
+        warning: 警告状态色。
+        error: 错误状态色。
+        info: 信息状态色。
+        muted: 静音/辅助色。
+        bg_dark: 深色背景色。
+        bg_light: 浅色背景色。
+        text_primary: 主文字色。
+        text_secondary: 辅助文字色。
+    """
+
+    name: str
+    primary_start: str
+    primary_end: str
+    border_start: str
+    border_end: str
+    accent_start: str
+    accent_end: str
+    success: str
+    warning: str
+    error: str
+    info: str
+    muted: str
+    bg_dark: str
+    bg_light: str
+    text_primary: str
+    text_secondary: str
+
+    def __post_init__(self) -> None:
+        """验证所有颜色字段格式。"""
+        color_fields = [
+            "primary_start", "primary_end",
+            "border_start", "border_end",
+            "accent_start", "accent_end",
+            "success", "warning", "error", "info", "muted",
+            "bg_dark", "bg_light",
+            "text_primary", "text_secondary",
+        ]
+        for field_name in color_fields:
+            value = getattr(self, field_name)
+            try:
+                validate_hex_color(value)
+            except ConfigError as exc:
+                raise ConfigError(
+                    f"主题 {self.name!r} 的字段 {field_name!r} 颜色无效: {exc}"
+                ) from exc
+
+
+class Theme:
+    """主题注册表（类方法工厂，无需实例化）。
+
+    内置 9 种主题，支持自定义主题注册。
+
+    Examples:
+        >>> config = Theme.get("ocean")
+        >>> config.name
+        'ocean'
+        >>> Theme.get("nonexistent")
+        Traceback (most recent call last):
+            ...
+        ConfigError: 主题不存在: 'nonexistent'
+    """
+
+    _registry: ClassVar[dict[str, ThemeConfig]] = {}
+    _initialized: ClassVar[bool] = False
+
+    @classmethod
+    def _ensure_initialized(cls) -> None:
+        """懒加载内置主题，避免模块导入时的副作用。"""
+        if not cls._initialized:
+            cls._register_builtin_themes()
+            cls._initialized = True
+
+    @classmethod
+    def get(cls, name: str) -> ThemeConfig:
+        """获取指定名称的主题配置。
+
+        Args:
+            name: 主题名称。
+
+        Returns:
+            ThemeConfig: 主题配置对象。
+
+        Raises:
+            ConfigError: 当主题名称不存在时抛出。
+        """
+        cls._ensure_initialized()
+        if name not in cls._registry:
+            available = sorted(cls._registry.keys())
+            raise ConfigError(
+                f"主题不存在: {name!r}，可用主题: {available}"
+            )
+        return cls._registry[name]
+
+    @classmethod
+    def register(cls, config: ThemeConfig) -> None:
+        """注册自定义主题。
+
+        Args:
+            config: 完整的主题配置对象。
+
+        Raises:
+            ConfigError: 当主题名称已存在（内置主题）时抛出。
+        """
+        cls._ensure_initialized()
+        cls._registry[config.name] = config
+
+    @classmethod
+    def list_names(cls) -> list[str]:
+        """返回所有可用主题名称（已排序）。"""
+        cls._ensure_initialized()
+        return sorted(cls._registry.keys())
+
+    @classmethod
+    def _register_builtin_themes(cls) -> None:
+        """注册 9 种内置主题。"""
+        builtin_themes: list[ThemeConfig] = [
+            ThemeConfig(
+                name="default",
+                primary_start="#6366F1", primary_end="#8B5CF6",
+                border_start="#6366F1", border_end="#8B5CF6",
+                accent_start="#F59E0B", accent_end="#EF4444",
+                success="#10B981", warning="#F59E0B",
+                error="#EF4444", info="#3B82F6",
+                muted="#6B7280",
+                bg_dark="#0F0F1A", bg_light="#1A1A2E",
+                text_primary="#F9FAFB", text_secondary="#D1D5DB",
+            ),
+            ThemeConfig(
+                name="ocean",
+                primary_start="#0EA5E9", primary_end="#06B6D4",
+                border_start="#0EA5E9", border_end="#06B6D4",
+                accent_start="#F0ABFC", accent_end="#C084FC",
+                success="#34D399", warning="#FBBF24",
+                error="#F87171", info="#60A5FA",
+                muted="#64748B",
+                bg_dark="#0C1A2E", bg_light="#0F2744",
+                text_primary="#F0F9FF", text_secondary="#BAE6FD",
+            ),
+            ThemeConfig(
+                name="sunset",
+                primary_start="#F97316", primary_end="#EF4444",
+                border_start="#F97316", border_end="#EF4444",
+                accent_start="#FBBF24", accent_end="#F97316",
+                success="#4ADE80", warning="#FCD34D",
+                error="#F87171", info="#38BDF8",
+                muted="#78716C",
+                bg_dark="#1A0A00", bg_light="#2D1500",
+                text_primary="#FFF7ED", text_secondary="#FED7AA",
+            ),
+            ThemeConfig(
+                name="forest",
+                primary_start="#22C55E", primary_end="#16A34A",
+                border_start="#22C55E", border_end="#16A34A",
+                accent_start="#84CC16", accent_end="#22C55E",
+                success="#4ADE80", warning="#FDE047",
+                error="#F87171", info="#38BDF8",
+                muted="#6B7280",
+                bg_dark="#031A0A", bg_light="#052E16",
+                text_primary="#F0FDF4", text_secondary="#BBF7D0",
+            ),
+            ThemeConfig(
+                name="purple",
+                primary_start="#A855F7", primary_end="#7C3AED",
+                border_start="#A855F7", border_end="#7C3AED",
+                accent_start="#EC4899", accent_end="#A855F7",
+                success="#4ADE80", warning="#FBBF24",
+                error="#F87171", info="#60A5FA",
+                muted="#7C3AED",
+                bg_dark="#0E0520", bg_light="#1A0933",
+                text_primary="#FAF5FF", text_secondary="#E9D5FF",
+            ),
+            ThemeConfig(
+                name="neon",
+                primary_start="#00FF41", primary_end="#00D4FF",
+                border_start="#00FF41", border_end="#00D4FF",
+                accent_start="#FF0080", accent_end="#FF6600",
+                success="#00FF41", warning="#FFD700",
+                error="#FF0040", info="#00D4FF",
+                muted="#404040",
+                bg_dark="#000000", bg_light="#0A0A0A",
+                text_primary="#00FF41", text_secondary="#00D4FF",
+            ),
+            ThemeConfig(
+                name="monochrome",
+                primary_start="#FFFFFF", primary_end="#AAAAAA",
+                border_start="#FFFFFF", border_end="#888888",
+                accent_start="#FFFFFF", accent_end="#CCCCCC",
+                success="#FFFFFF", warning="#AAAAAA",
+                error="#888888", info="#CCCCCC",
+                muted="#555555",
+                bg_dark="#000000", bg_light="#111111",
+                text_primary="#FFFFFF", text_secondary="#AAAAAA",
+            ),
+            ThemeConfig(
+                name="ruby",
+                primary_start="#E11D48", primary_end="#BE123C",
+                border_start="#FB7185", border_end="#E11D48",
+                accent_start="#F43F5E", accent_end="#E11D48",
+                success="#4ADE80", warning="#FBBF24",
+                error="#F87171", info="#38BDF8",
+                muted="#9F1239",
+                bg_dark="#1A0008", bg_light="#2D0012",
+                text_primary="#FFF1F2", text_secondary="#FECDD3",
+            ),
+            ThemeConfig(
+                name="aurora",
+                primary_start="#34D399", primary_end="#60A5FA",
+                border_start="#34D399", border_end="#A78BFA",
+                accent_start="#F472B6", accent_end="#60A5FA",
+                success="#34D399", warning="#FCD34D",
+                error="#F87171", info="#60A5FA",
+                muted="#475569",
+                bg_dark="#020617", bg_light="#0F172A",
+                text_primary="#F8FAFC", text_secondary="#CBD5E1",
+            ),
+        ]
+        for theme in builtin_themes:
+            cls._registry[theme.name] = theme
+```
+
+### 5.5 圆角与阴影系统
+
+```python
+# src/echoui/core/design_tokens.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Final
+
+
+@dataclass(frozen=True)
+class RadiusToken:
+    """圆角令牌（流体，随视口缩放）。"""
+    variable: str
+    min_px: int
+    max_px: int
+
+    def compute_px(self, viewport_width: int) -> int:
+        """计算当前视口下的圆角像素值。"""
+        min_vp: Final[int] = 320
+        max_vp: Final[int] = 1920
+        t = max(0.0, min(1.0, (viewport_width - min_vp) / (max_vp - min_vp)))
+        return round(self.min_px + (self.max_px - self.min_px) * t)
+
+
+@dataclass(frozen=True)
+class ShadowToken:
+    """阴影令牌（流体，随视口缩放）。"""
+    variable: str
+    blur_min_px: int
+    blur_max_px: int
+    spread_min_px: int
+    spread_max_px: int
+    use_cases: str
+
+
+RADIUS_MAP: dict[str, RadiusToken] = {
+    "xs":   RadiusToken("--radius-xs",   min_px=2,    max_px=4),
+    "sm":   RadiusToken("--radius-sm",   min_px=4,    max_px=8),
+    "md":   RadiusToken("--radius-md",   min_px=6,    max_px=12),
+    "lg":   RadiusToken("--radius-lg",   min_px=8,    max_px=16),
+    "xl":   RadiusToken("--radius-xl",   min_px=10,   max_px=20),
+    "2xl":  RadiusToken("--radius-2xl",  min_px=12,   max_px=24),
+    "full": RadiusToken("--radius-full", min_px=9999, max_px=9999),
+}
+
+SHADOW_MAP: dict[str, ShadowToken] = {
+    "sm":   ShadowToken("--shadow-sm",   1,  2,  4,  10, "列表项/图标"),
+    "md":   ShadowToken("--shadow-md",   2,  4,  8,  20, "卡片/下拉菜单"),
+    "lg":   ShadowToken("--shadow-lg",   4,  8,  16, 32, "模态框/面板"),
+    "xl":   ShadowToken("--shadow-xl",   6,  12, 20, 40, "悬浮元素"),
+    "glow": ShadowToken("--shadow-glow", 8,  16, 0,  0,  "辉光标题"),
+}
+
+# 背景装饰图形类型（枚举安全集合）
+BG_SHAPE_TYPES: Final[frozenset[str]] = frozenset({
+    "circle", "square", "triangle", "hexagon", "diamond"
+})
+```
+
+---
+
+## 六、组件库规范
+
+### 6.1 组件基础契约
+
+```python
+# src/echoui/components/base_component.py
+from __future__ import annotations
+
+import sys
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from echoui.core.renderer import GradientRenderer
+    from echoui.core.theme import ThemeConfig
+
+
+class BaseComponent(ABC):
+    """所有 EchoUI 组件的抽象基类。
+
+    规范:
+    - 所有修改状态的方法必须返回 self（支持链式调用）
+    - 所有状态通过只读属性暴露
+    - 修改通过方法（非直接属性赋值）
+    - 提供 async 版本（后缀 _async）用于耗时操作
+
+    Attributes:
+        _renderer: 渐变渲染引擎。
+        _normal_mode: 是否为降级模式（无颜色/动画）。
+        _theme: 当前主题配置。
+        _visible: 组件是否可见。
+    """
+
+    def __init__(
+        self,
+        renderer: Optional[GradientRenderer] = None,
+        normal_mode: bool = False,
+        theme: Optional[ThemeConfig] = None,
+    ) -> None:
+        """初始化基础组件。
+
+        Args:
+            renderer: 渐变渲染引擎，None 时自动创建。
+            normal_mode: 降级模式开关，True 时禁用颜色和动画。
+            theme: 主题配置，None 时使用 default 主题。
+        """
+        import os
+        from echoui.core.renderer import GradientRenderer as _Renderer
+        from echoui.core.theme import Theme
+
+        # 环境变量可强制覆盖 normal_mode
+        env_normal = os.environ.get("ECHOUI_NORMAL_MODE", "").lower()
+        if env_normal in ("1", "true", "yes"):
+            normal_mode = True
+
+        self._normal_mode: bool = normal_mode
+        self._renderer: GradientRenderer = renderer or _Renderer(
+            normal_mode=normal_mode
+        )
+        self._theme: ThemeConfig = theme or Theme.get("default")
+        self._visible: bool = True
+
+    @property
+    def normal_mode(self) -> bool:
+        """当前是否为降级模式。"""
+        return self._normal_mode
+
+    @property
+    def theme(self) -> ThemeConfig:
+        """当前主题配置。"""
+        return self._theme
+
+    @property
+    def is_visible(self) -> bool:
+        """组件是否可见。"""
+        return self._visible
+
+    def show(self) -> BaseComponent:
+        """显示组件（链式）。"""
+        self._visible = True
+        return self
+
+    def hide(self) -> BaseComponent:
+        """隐藏组件（链式）。"""
+        self._visible = False
+        return self
+
+    @abstractmethod
+    def render(self) -> str:
+        """渲染组件为字符串表示。
+
+        Returns:
+            str: 渲染结果，在 normal_mode 下不包含 ANSI 序列。
+        """
+
+    def __repr__(self) -> str:
+        """返回组件的调试表示。"""
+        return (
+            f"{self.__class__.__name__}("
+            f"theme={self._theme.name!r}, "
+            f"normal_mode={self._normal_mode})"
+        )
+```
+
+### 6.2 ConsoleUI 主控制器
+
+```python
+# src/echoui/components/console_ui.py
+from __future__ import annotations
+
+import sys
+from typing import Any, Optional, TextIO
+
+from echoui.components.base_component import BaseComponent
+from echoui.components.box_builder import BoxBuilder
+from echoui.components.notification import Notification
+from echoui.components.table_builder import TableBuilder
+from echoui.core.renderer import GradientRenderer
+from echoui.core.theme import ThemeConfig
+from echoui.utils.text import get_display_width
+
+
+class ConsoleUI(BaseComponent):
+    """EchoUI 主控制器，协调所有组件的渲染与交互。
+
+    所有输出方法返回 self，支持链式调用:
+        ui.print("Hello").box("World").table(data).newline()
+
+    Attributes:
+        _output_stream: 输出流，默认 sys.stdout。
+        _notification: 通知组件实例。
+
+    Examples:
+        >>> ui = ConsoleUI(normal_mode=True)
+        >>> result = ui.print("Hello")
+        >>> result is ui
+        True
+    """
+
+    def __init__(
+        self,
+        renderer: Optional[GradientRenderer] = None,
+        normal_mode: bool = False,
+        theme: Optional[ThemeConfig] = None,
+        output_stream: Optional[TextIO] = None,
+    ) -> None:
+        """初始化 ConsoleUI 主控制器。
+
+        Args:
+            renderer: 渐变渲染引擎。
+            normal_mode: 降级模式开关。
+            theme: 主题配置。
+            output_stream: 输出流，默认 sys.stdout。
+        """
+        super().__init__(renderer=renderer, normal_mode=normal_mode, theme=theme)
+        self._output_stream: TextIO = output_stream or sys.stdout
+        self._notification: Notification = Notification(
+            renderer=self._renderer,
+            normal_mode=self._normal_mode,
+            theme=self._theme,
+        )
+
+    def render(self) -> str:
+        """渲染当前 UI 状态（ConsoleUI 本身为容器，返回空字符串）。"""
+        return ""
+
+    def print(self, text: str = "", end: str = "\n") -> ConsoleUI:
+        """输出文本到输出流（链式）。
+
+        Args:
+            text: 待输出的文本。
+            end: 行尾字符，默认换行。
+
+        Returns:
+            ConsoleUI: 返回 self 支持链式调用。
+        """
+        print(text, end=end, file=self._output_stream, flush=True)
+        return self
+
+    def newline(self, count: int = 1) -> ConsoleUI:
+        """输出指定数量的空行（链式）。
+
+        Args:
+            count: 空行数量，默认 1。
+
+        Returns:
+            ConsoleUI: 返回 self 支持链式调用。
+        """
+        for _ in range(count):
+            print("", file=self._output_stream, flush=True)
+        return self
+
+    def box(
+        self,
+        text: str,
+        title: str = "",
+        border_style: str = "rounded",
+        width: Optional[int] = None,
+    ) -> ConsoleUI:
+        """渲染带边框的文本盒子并输出（链式）。
+
+        Args:
+            text: 盒子内文本内容。
+            title: 可选的盒子标题。
+            border_style: 边框样式（rounded/square/double/ascii）。
+            width: 盒子宽度，None 时自动检测终端宽度。
+
+        Returns:
+            ConsoleUI: 返回 self 支持链式调用。
+        """
+        builder = BoxBuilder(
+            renderer=self._renderer,
+            normal_mode=self._normal_mode,
+            theme=self._theme,
+        )
+        output = builder.build(
+            text=text,
+            title=title,
+            border_style=border_style,
+            width=width,
+        )
+        print(output, file=self._output_stream, flush=True)
+        return self
+
+    def table(
+        self,
+        data: list[list[str]],
+        headers: Optional[list[str]] = None,
+        alignments: Optional[list[str]] = None,
+    ) -> ConsoleUI:
+        """渲染表格并输出（链式）。
+
+        Args:
+            data: 二维字符串列表（行 x 列）。
+            headers: 表头列表，None 时使用 data 第一行。
+            alignments: 每列对齐方式（left/center/right），None 时全左对齐。
+
+        Returns:
+            ConsoleUI: 返回 self 支持链式调用。
+        """
+        builder = TableBuilder(
+            renderer=self._renderer,
+            normal_mode=self._normal_mode,
+            theme=self._theme,
+        )
+        if headers is not None:
+            builder.set_headers(headers)
+        if alignments is not None:
+            builder.set_alignments(alignments)
+        for row in data:
+            builder.add_row(row)
+        output = builder.render()
+        print(output, file=self._output_stream, flush=True)
+        return self
+
+    def rule(self, character: str = "-", width: Optional[int] = None) -> ConsoleUI:
+        """输出水平分割线（链式）。
+
+        Args:
+            character: 分割线字符，默认 "-"。
+            width: 分割线宽度，None 时自动检测。
+
+        Returns:
+            ConsoleUI: 返回 self 支持链式调用。
+        """
+        import shutil
+        actual_width = width or shutil.get_terminal_size((80, 24)).columns
+        if self._normal_mode:
+            line = character * actual_width
+        else:
+            from echoui.utils.text import repeat_char_gradient
+            line = repeat_char_gradient(
+                character, actual_width,
+                self._theme.border_start, self._theme.border_end,
+                self._renderer,
+            )
+        print(line, file=self._output_stream, flush=True)
+        return self
+
+    def success(self, message: str) -> ConsoleUI:
+        """输出成功通知（链式）。"""
+        self._notification.success(message)
+        return self
+
+    def warning(self, message: str) -> ConsoleUI:
+        """输出警告通知（链式）。"""
+        self._notification.warning(message)
+        return self
+
+    def error(self, message: str) -> ConsoleUI:
+        """输出错误通知（链式）。"""
+        self._notification.error(message)
+        return self
+
+    def info(self, message: str) -> ConsoleUI:
+        """输出信息通知（链式）。"""
+        self._notification.info(message)
+        return self
+
+    async def run_chat_session(
+        self,
+        welcome: str = "欢迎",
+        quit_command: str = "/quit",
+    ) -> None:
+        """运行异步聊天会话（E2E 流程入口）。
+
+        Args:
+            welcome: 欢迎语，会话开始时显示。
+            quit_command: 退出命令字符串。
+        """
+        from echoui.components.async_input import AsyncInput
+
+        self.box(welcome, title="EchoUI Chat")
+        async_input = AsyncInput(
+            renderer=self._renderer,
+            normal_mode=self._normal_mode,
+        )
+        while True:
+            try:
+                user_input = await async_input.readline(prompt="> ")
+                if user_input.strip() == quit_command:
+                    self.info("会话已结束")
+                    break
+                self.print(f"[你] {user_input}")
+            except (EOFError, KeyboardInterrupt):
+                self.info("会话已中断")
+                break
+
+    async def run_form(
+        self,
+        fields: list[str],
+        on_submit: Any,
+    ) -> None:
+        """运行异步表单填写流程。
+
+        Args:
+            fields: 字段名称列表。
+            on_submit: 提交回调协程，接收 dict[str, str] 参数。
+        """
+        from echoui.components.async_input import AsyncInput
+
+        async_input = AsyncInput(
+            renderer=self._renderer,
+            normal_mode=self._normal_mode,
+        )
+        form_data: dict[str, str] = {}
+        for field in fields:
+            value = await async_input.readline(prompt=f"{field}: ")
+            form_data[field] = value.strip()
+        await on_submit(form_data)
+```
+
+### 6.3 组件完整清单与契约
+
+```
+组件名                  功能                      链式方法                           异步支持
+─────────────────────────────────────────────────────────────────────────────────────────
+ConsoleUI              主控制器                  print/box/table/newline/rule        run_chat_session / run_form
+GradientRenderer       渐变计算引擎              render_text_ansi/render_progress_bar  --
+BoxBuilder             带边框的文本盒子           build                               --
+AsciiArtBuilder        ASCII 艺术字              build(text, row_offset)             --
+TableBuilder           表格                      add_row/set_headers/set_alignments  --
+PanelBuilder           带标题的面板              render(content, title, subtitle)    --
+ProgressBar            渐变进度条                advance/set_progress/finish         advance_async
+Spinner                加载动画                  update_message/start/stop           async context manager
+StreamWriter           逐字符流式输出             write_text/write_char/reset         write_text_async
+AsyncInput             行编辑器（IME 兼容）       --                                  readline(prompt)
+InteractiveSelector    上下键选择菜单             --                                  select(title, options, default)
+ConfirmDialog          确认对话框                 --                                  confirm(message, default)
+Timer                  操作计时器                 start/stop/print_elapsed            async context manager
+Notification           通知消息                  success/warning/error/info          --
+KeyValueList           键值对展示                 render(items, separator)            --
+MultiLineInput         多行文本编辑               --                                  read(prompt, end_marker)
+Pager                  分页器                    --                                  display(text, title)
+Countdown              倒计时                    --                                  run(seconds, message, on_tick)
+ColumnLayout           多列布局                  render(columns, col_widths, gap)    --
+TreeView               树形视图                  render(root, row_offset)            --
+```
+
+### 6.4 消息气泡规范
+
+```python
+# src/echoui/components/message_bubble.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
+
+from echoui.components.base_component import BaseComponent
+from echoui.core.exceptions import ConfigError
+
+
+class BubbleSide(str, Enum):
+    """消息气泡方向。"""
+
+    SENDER = "sender"      # 发送方（右对齐，渐变背景）
+    RECEIVER = "receiver"  # 接收方（左对齐，默认背景）
+
+
+@dataclass(frozen=True)
+class MessageAttachment:
+    """消息附件元数据（不可变）。
+
+    Attributes:
+        filename: 原始文件名（已净化为 UUID 格式）。
+        mime_type: MIME 类型。
+        size_bytes: 文件大小（字节）。
+        preview_url: 预览 URL（图片/视频/音频可用）。
+        download_url: 下载 URL。
+    """
+
+    filename: str
+    mime_type: str
+    size_bytes: int
+    preview_url: Optional[str]
+    download_url: str
+
+    @property
+    def is_previewable(self) -> bool:
+        """判断是否为可预览类型（图片/视频/音频）。"""
+        previewable_prefixes = ("image/", "video/", "audio/")
+        return any(
+            self.mime_type.startswith(prefix)
+            for prefix in previewable_prefixes
+        )
+
+
+class MessageBubble(BaseComponent):
+    """消息气泡组件。
+
+    样式规范:
+    - 发送方: 渐变背景，右对齐，右下角小圆角
+    - 接收方: 默认背景，左对齐，左下角小圆角
+    - 最大宽度: clamp(70%, 60%+10vw, 85%)，小屏全宽
+    - 动画: 出现时从侧方淡入位移，时长 0.6s
+
+    Examples:
+        >>> bubble = MessageBubble(normal_mode=True)
+        >>> output = bubble.render_message(
+        ...     side=BubbleSide.SENDER,
+        ...     nickname="张三",
+        ...     text="你好！",
+        ...     timestamp="14:30",
+        ... )
+        >>> "张三" in output
+        True
+        >>> "你好" in output
+        True
+    """
+
+    def render(self) -> str:
+        """实现抽象方法（气泡组件通过 render_message 输出）。"""
+        return ""
+
+    def render_message(
+        self,
+        side: BubbleSide,
+        nickname: str,
+        text: str,
+        timestamp: str,
+        attachment: Optional[MessageAttachment] = None,
+        is_retracted: bool = False,
+    ) -> str:
+        """渲染单条消息气泡。
+
+        Args:
+            side: 气泡方向（发送方/接收方）。
+            nickname: 发送者昵称。
+            text: 消息正文。
+            timestamp: 时间戳字符串（如 "14:30"）。
+            attachment: 可选的文件附件。
+            is_retracted: 是否已撤回（仅发送方可见撤回选项）。
+
+        Returns:
+            str: 渲染后的气泡字符串。
+
+        Raises:
+            ConfigError: 当 side 值非法时抛出。
+        """
+        if side not in (BubbleSide.SENDER, BubbleSide.RECEIVER):
+            raise ConfigError(f"非法的气泡方向: {side!r}")
+
+        lines: list[str] = []
+        lines.append(self._render_header(nickname, timestamp, side))
+        lines.append(self._render_body(text, side))
+        if attachment is not None:
+            lines.append(self._render_attachment(attachment))
+        if is_retracted and side == BubbleSide.SENDER:
+            lines.append(self._render_retract_hint())
+        return "\n".join(lines)
+
+    def _render_header(
+        self, nickname: str, timestamp: str, side: BubbleSide
+    ) -> str:
+        """渲染气泡头部（昵称 + 时间戳）。"""
+        if self._normal_mode:
+            if side == BubbleSide.SENDER:
+                return f"  {timestamp} {nickname}"
+            return f"{nickname} {timestamp}"
+        # 全特性模式：渐变昵称
+        colored_nickname = self._renderer.render_text_ansi(
+            nickname,
+            self._theme.primary_start,
+            self._theme.primary_end,
+        )
+        muted_timestamp = f"\x1b[2m{timestamp}\x1b[0m"
+        if side == BubbleSide.SENDER:
+            return f"  {muted_timestamp} {colored_nickname}"
+        return f"{colored_nickname} {muted_timestamp}"
+
+    def _render_body(self, text: str, side: BubbleSide) -> str:
+        """渲染气泡正文区域。"""
+        padding = "  "
+        if self._normal_mode:
+            prefix = "  |" if side == BubbleSide.SENDER else "| "
+            return f"{prefix} {text}"
+        if side == BubbleSide.SENDER:
+            colored_text = self._renderer.render_text_ansi(
+                text,
+                self._theme.primary_start,
+                self._theme.primary_end,
+            )
+            return f"{padding}{colored_text}"
+        return f"{text}"
+
+    def _render_attachment(self, attachment: MessageAttachment) -> str:
+        """渲染文件附件区域。"""
+        size_kb = attachment.size_bytes / 1024
+        if attachment.is_previewable:
+            return f"  [预览: {attachment.filename} ({size_kb:.1f}KB)]"
+        return f"  [下载: {attachment.filename} ({size_kb:.1f}KB)]"
+
+    def _render_retract_hint(self) -> str:
+        """渲染撤回提示（仅发送方可见）。"""
+        if self._normal_mode:
+            return "  [撤回]"
+        return "\x1b[2m  [撤回]\x1b[0m"
+```
+
+---
+
+## 七、多框架集成
+
+### 7.1 适配器抽象基类
+
+```python
+# src/echoui/adapters/base_adapter.py
+from __future__ import annotations
+
+import logging
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Coroutine, Optional
+
+from echoui.components.console_ui import ConsoleUI
+from echoui.core.exceptions import AdapterError
+
+logger = logging.getLogger(__name__)
+
+
+class BaseAdapter(ABC):
+    """所有后端适配器的抽象基类。
+
+    统一接口规范:
+    - run() / stop(): 同步阻塞启动/停止
+    - run_async() / stop_async(): 异步协程启动/停止
+    - register_route(): 路由注册
+    - get() / post() / put() / delete(): HTTP 方法装饰器
+
+    Attributes:
+        _ui: 绑定的 ConsoleUI 实例。
+        _host: 监听地址（Web 适配器使用）。
+        _port: 监听端口（Web 适配器使用）。
+        _routes: 已注册路由映射表。
+    """
+
+    def __init__(
+        self,
+        ui: ConsoleUI,
+        host: str = "0.0.0.0",
+        port: int = 8080,
+    ) -> None:
+        """初始化适配器。
+
+        Args:
+            ui: ConsoleUI 主控制器实例。
+            host: 监听地址。
+            port: 监听端口（0 表示随机端口，用于测试）。
+        """
+        self._ui = ui
+        self._host = host
+        self._port = port
+        self._routes: dict[str, Callable[..., Any]] = {}
+
+    @property
+    def ui(self) -> ConsoleUI:
+        """绑定的 ConsoleUI 实例。"""
+        return self._ui
+
+    @abstractmethod
+    def run(self) -> None:
+        """同步阻塞启动服务。"""
+
+    @abstractmethod
+    async def run_async(self) -> None:
+        """异步启动服务。"""
+
+    @abstractmethod
+    def stop(self) -> None:
+        """停止服务，清理资源。"""
+
+    def register_route(
+        self,
+        path: str,
+        method: str,
+        handler: Callable[..., Any],
+    ) -> None:
+        """注册路由处理器。
+
+        Args:
+            path: URL 路径。
+            method: HTTP 方法（GET/POST/PUT/DELETE）。
+            handler: 处理函数（可以是协程）。
+        """
+        key = f"{method.upper()}:{path}"
+        if key in self._routes:
+            logger.warning("路由已存在，将被覆盖: %s", key)
+        self._routes[key] = handler
+        logger.debug("注册路由: %s", key)
+
+    def get(self, path: str) -> Callable[..., Any]:
+        """GET 路由装饰器工厂。
+
+        Args:
+            path: URL 路径。
+
+        Returns:
+            Callable: 装饰器函数。
+
+        Examples:
+            >>> adapter = MyAdapter(ui=ui)
+            >>> @adapter.get("/api/users")
+            ... async def list_users():
+            ...     return {"users": []}
+        """
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            self.register_route(path, "GET", handler)
+            return handler
+        return decorator
+
+    def post(self, path: str) -> Callable[..., Any]:
+        """POST 路由装饰器工厂。"""
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            self.register_route(path, "POST", handler)
+            return handler
+        return decorator
+
+    def put(self, path: str) -> Callable[..., Any]:
+        """PUT 路由装饰器工厂。"""
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            self.register_route(path, "PUT", handler)
+            return handler
+        return decorator
+
+    def delete(self, path: str) -> Callable[..., Any]:
+        """DELETE 路由装饰器工厂。"""
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            self.register_route(path, "DELETE", handler)
+            return handler
+        return decorator
+```
+
+### 7.2 后端支持矩阵
+
+```
+后端        适配器类              安装条件                特点
+──────────────────────────────────────────────────────────────────────
+aiohttp    AiohttpAdapter       aiohttp>=3.9            原生异步，WebSocket，高性能
+Flask      FlaskAdapter         flask>=2.3              同步，轻量，快速原型
+FastAPI    FastAPIAdapter       fastapi,uvicorn         自动文档，高性能，类型安全
+Tkinter    TkinterAdapter       标准库                  桌面应用，跨平台，无需安装
+PyQt5/6    PyQtAdapter          PyQt5 或 PyQt6          专业桌面，信号槽，原生控件
+Console    TerminalAdapter      无（标准库）             终端 UI，无需图形环境
+```
+
+### 7.3 状态管理
+
+```python
+# src/echoui/core/state.py
+from __future__ import annotations
+
+import logging
+from typing import Any, Callable, Generic, TypeVar
+
+logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+
+class State(Generic[_T]):
+    """响应式状态容器。
+
+    当状态值变更时，自动通知所有已注册的监听器。
+    监听器调用顺序与注册顺序一致。
+
+    Examples:
+        >>> state = State(initial=0)
+        >>> received: list[int] = []
+        >>> state.add_listener(lambda v: received.append(v))
+        >>> state.set(42)
+        >>> received
+        [42]
+        >>> state.get()
+        42
+    """
+
+    def __init__(self, initial: _T) -> None:
+        """初始化状态容器。
+
+        Args:
+            initial: 初始状态值。
+        """
+        self._value: _T = initial
+        self._listeners: list[Callable[[_T], None]] = []
+
+    def get(self) -> _T:
+        """获取当前状态值。
+
+        Returns:
+            _T: 当前状态值。
+        """
+        return self._value
+
+    def set(self, new_value: _T) -> None:
+        """更新状态值并通知所有监听器。
+
+        Args:
+            new_value: 新的状态值。
+        """
+        if new_value is self._value:
+            return  # 引用相同时跳过，避免不必要的重渲染
+        self._value = new_value
+        self._notify_listeners(new_value)
+
+    def add_listener(self, listener: Callable[[_T], None]) -> None:
+        """注册状态变更监听器。
+
+        Args:
+            listener: 接受新值的回调函数。
+        """
+        self._listeners.append(listener)
+
+    def remove_listener(self, listener: Callable[[_T], None]) -> None:
+        """移除已注册的监听器。
+
+        Args:
+            listener: 要移除的回调函数。
+        """
+        try:
+            self._listeners.remove(listener)
+        except ValueError:
+            logger.warning("尝试移除未注册的监听器: %s", listener)
+
+    def _notify_listeners(self, value: _T) -> None:
+        """通知所有监听器（内部方法）。"""
+        for listener in self._listeners:
+            try:
+                listener(value)
+            except Exception as exc:
+                logger.error(
+                    "状态监听器异常: %s", exc, exc_info=True
+                )
+```
+
+---
+
+## 八、数据库规范
+
+### 8.1 ORM 设计原则
+
+```
+原则一: 纯 Python 语法
+  - 禁止编写裸 SQL 字符串（参数化查询的 values 除外）
+  - 表定义通过 Python 类，查询通过链式方法
+
+原则二: 类型安全
+  - 字段映射到 Python 原生类型
+  - 查询结果返回类型化对象（非 dict/tuple）
+
+原则三: 异步优先
+  - 提供 Session（同步）和 AsyncSession（异步）
+  - 所有 I/O 操作默认异步
+
+原则四: 不可变更新
+  - update() 返回新对象，不原地修改传入实例
+```
+
+### 8.2 模型定义
+
+```python
+# src/echoui/db/model.py
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, ClassVar, Optional
+from uuid import UUID, uuid4
+
+
+@dataclass
+class Model:
+    """EchoUI ORM 模型基类。
+
+    所有用户定义的模型必须继承此类。
+    子类通过类属性 __tablename__ 指定表名，
+    通过 Field 描述符定义字段。
+
+    Examples:
+        >>> class User(Model):
+        ...     __tablename__ = "users"
+        ...     name = Field(str, max_length=50, nullable=False)
+        ...     email = Field(str, unique=True)
+        >>> user = User(name="张三", email="z@example.com")
+        >>> user.name
+        '张三'
+    """
+
+    __tablename__: ClassVar[str] = ""
+
+    id: UUID = field(default_factory=uuid4)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+```
+
+### 8.3 查询接口规范
+
+```python
+# 查询示例（链式 API 规范）
+
+# 基础查询
+users = await User.select().find_all(session)
+
+# 条件过滤
+active_users = await (
+    User.select()
+    .where(User.status == "active")
+    .order_by(User.created_at.desc())
+    .limit(10)
+    .offset(0)
+    .find_all(session)
+)
+
+# 聚合查询
+count = await User.select().where(User.status == "active").count(session)
+
+# 关联查询
+user_posts = await (
+    User.select()
+    .join(Post, User.id == Post.user_id)
+    .where(Post.published == True)
+    .find_all(session)
+)
+
+# 事务（上下文管理器）
+async with session.transaction():
+    user = await session.save(User(name="张三", email="z@example.com"))
+    await session.save(Post(user_id=user.id, title="首篇文章"))
+
+# 迁移（CLI 命令）
+# python -m echoui.db migrate --url sqlite:///app.db
+```
+
+---
+
+## 九、高可用服务模式
+
+### 9.1 双实例无缝切换规范
+
+```python
+# src/echoui/ha/instance_manager.py
+from __future__ import annotations
+
+import asyncio
+import logging
+from dataclasses import dataclass, replace
+from enum import Enum
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# 高可用服务配置常量
+HEALTH_CHECK_INTERVAL: int = 15         # 健康检查间隔（秒）
+HEALTH_CHECK_FAIL_THRESHOLD: int = 2    # 连续失败次数触发重启
+IP_DEDUP_MAX_RETRIES: int = 3           # IP 去重最大重试次数
+IP_DEDUP_RETRY_DELAY: int = 10          # IP 重复时重试等待（秒）
+LOG_MAX_SIZE_BYTES: int = 10 * 1024 * 1024  # 日志轮转阈值 (10MB)
+LOG_MAX_LINES: int = 1000               # 超出时保留最近 N 行
+
+
+class InstanceStatus(str, Enum):
+    """服务实例状态枚举。"""
+
+    READY = "ready"           # 健康，接收流量
+    MAINTENANCE = "maint"     # 维护中，不接收流量
+    REBUILDING = "rebuilding" # 重建中
+
+
+@dataclass(frozen=True)
+class InstanceState:
+    """服务实例状态快照（不可变）。
+
+    Attributes:
+        instance_id: 实例唯一标识。
+        proxy_port: 代理监听端口。
+        public_ip: 对外 IP 地址。
+        status: 当前状态。
+        consecutive_failures: 连续健康检查失败次数。
+    """
+
+    instance_id: str
+    proxy_port: int
+    public_ip: Optional[str]
+    status: InstanceStatus
+    consecutive_failures: int = 0
+
+    def with_failure(self) -> InstanceState:
+        """返回增加一次失败计数的新状态。"""
+        return replace(
+            self,
+            consecutive_failures=self.consecutive_failures + 1,
+        )
+
+    def with_status(self, status: InstanceStatus) -> InstanceState:
+        """返回更新了状态的新实例状态。"""
+        return replace(self, status=status, consecutive_failures=0)
+
+    def with_ip(self, ip: str) -> InstanceState:
+        """返回更新了 IP 的新实例状态。"""
+        return replace(self, public_ip=ip)
+
+    @property
+    def needs_restart(self) -> bool:
+        """判断是否需要重启（连续失败达到阈值）。"""
+        return self.consecutive_failures >= HEALTH_CHECK_FAIL_THRESHOLD
+```
+
+### 9.2 部署与清理规范
+
+```bash
+# ============================================================
+# 部署流程（严格顺序，不可跳过）
+# ============================================================
+# 1. 清理残留资源
+# 2. 安装运行时依赖
+# 3. 创建网络命名空间和 veth 对
+# 4. 生成 systemd unit 文件
+# 5. 启动两个服务实例
+# 6. 配置负载均衡器（HAProxy）
+# 7. 设置定时健康检查任务
+# 8. 验证两实例状态均为 READY
+# 9. 验证 IP 不同（若相同，最多重试 3 次，每次等待 10 秒）
+
+# ============================================================
+# 清理流程（严格顺序，必须完整执行）
+# ============================================================
+# 1. 停止所有服务实例
+# 2. 停止健康检查守护进程
+# 3. 停止负载均衡器
+# 4. 删除网络命名空间
+# 5. 移除 systemd unit 文件
+# 6. 执行 systemctl daemon-reload
+# 7. 删除数据目录
+
+# ============================================================
+# systemd 服务配置要求
+# ============================================================
+# [Service]
+# Restart=always
+# StartLimitBurst=0
+# RestartSec=5
+```
+
+---
+
+## 十、性能与可访问性
+
+### 10.1 性能等级检测
+
+```python
+# src/echoui/core/platform_detector.py
+from __future__ import annotations
+
+import logging
+import os
+import sys
+from enum import Enum
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+class PerformanceTier(str, Enum):
+    """设备性能等级枚举。"""
+
+    LOW = "low"       # 内存<4GB 或 核心<4
+    MEDIUM = "medium" # 内存4–8GB 且 核心>=4
+    HIGH = "high"     # 内存>=8GB 且 核心>=8
+
+
+def detect_performance_tier() -> PerformanceTier:
+    """检测当前设备性能等级。
+
+    优先使用 psutil，若不可用则降级为 os.cpu_count()。
+
+    Returns:
+        PerformanceTier: 检测到的性能等级。
+
+    Examples:
+        >>> tier = detect_performance_tier()
+        >>> tier in (PerformanceTier.LOW, PerformanceTier.MEDIUM, PerformanceTier.HIGH)
+        True
+    """
+    try:
+        import psutil
+        memory_gb = psutil.virtual_memory().total / (1024 ** 3)
+        cpu_count = psutil.cpu_count(logical=False) or 1
+    except ImportError:
+        logger.warning("psutil 不可用，使用 os.cpu_count() 降级检测")
+        memory_gb = 8.0  # 无法检测时假设中等配置
+        cpu_count = os.cpu_count() or 1
+
+    if memory_gb < 4 or cpu_count < 4:
+        return PerformanceTier.LOW
+    if memory_gb < 8 or cpu_count < 8:
+        return PerformanceTier.MEDIUM
+    return PerformanceTier.HIGH
+
+
+# 各性能等级的功能降级策略（权威配置）
+TIER_FEATURE_MAP: dict[PerformanceTier, dict[str, bool | int]] = {
+    PerformanceTier.LOW: {
+        "bg_decorations": False,       # 背景装饰：禁用
+        "backdrop_filter": False,      # backdrop-filter：禁用
+        "animation_enabled": True,     # 动画：仅淡入
+        "animation_duration_ms": 150,  # 动画时长：最短
+        "shadow_level": 0,             # 阴影：禁用
+        "gloss_effect": False,         # 光泽效果：禁用
+    },
+    PerformanceTier.MEDIUM: {
+        "bg_decorations": True,
+        "backdrop_filter": True,
+        "animation_enabled": True,
+        "animation_duration_ms": 300,
+        "shadow_level": 3,
+        "gloss_effect": False,
+    },
+    PerformanceTier.HIGH: {
+        "bg_decorations": True,
+        "backdrop_filter": True,
+        "animation_enabled": True,
+        "animation_duration_ms": 600,
+        "shadow_level": 5,
+        "gloss_effect": True,
+    },
+}
+```
+
+### 10.2 可访问性强制要求
+
+```
+WCAG 2.1 AA 合规项（全部为强制要求）:
+
+对比度:
+  - 正文文字对比度 >= 4.5:1
+  - 大文字（>=18px 或粗体>=14px）对比度 >= 3:1
+  - UI 组件和图形元素对比度 >= 3:1
+
+键盘导航:
+  - 所有交互元素可通过 Tab 键聚焦
+  - 焦点指示器轮廓宽度 >= 2px
+  - 焦点顺序符合逻辑阅读顺序
+
+屏幕阅读器:
+  - 装饰性元素标注 aria-hidden="true"
+  - 动态内容区域标注 aria-live="polite"
+  - 所有交互元素有可访问名称（aria-label 或可见文字）
+
+减少动画 (prefers-reduced-motion):
+  - 检测到此偏好时，禁用所有非必要动画
+  - 消息出现仅保留淡入效果（无位移）
+
+高对比度模式 (prefers-contrast: high):
+  - 移除半透明背景
+  - 边框加粗（至少 2px 实线）
+  - 文字强调改为下划线（移除颜色强调）
+
+触控优化:
+  - 所有可点击区域最小尺寸 44x44px
+  - hover 效果仅在 pointer 设备启用
+  - 触控设备提供 :active 状态反馈
+  - 撤回按钮在触控设备通过长按触发（非 hover）
+```
+
+---
+
+## 十一、安全与错误处理
+
+### 11.1 输入安全规范
+
+```python
+# src/echoui/utils/validators.py
+from __future__ import annotations
+
+import re
+import uuid
+from pathlib import Path
+from typing import Final
+
+from echoui.core.exceptions import ConfigError, InputError
+
+# ============================================================
+# 编译正则（模块级，仅编译一次）
+# ============================================================
+
+_HEX_COLOR_RE: re.Pattern[str] = re.compile(r"^#[0-9A-Fa-f]{6}$")
+_EMAIL_RE: re.Pattern[str] = re.compile(
+    r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+)
+
+# ============================================================
+# 安全常量
+# ============================================================
+
+ALLOWED_UPLOAD_EXTENSIONS: Final[frozenset[str]] = frozenset({
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
+    ".pdf", ".txt", ".csv", ".json", ".zip",
+})
+MAX_UPLOAD_SIZE_BYTES: Final[int] = 10 * 1024 * 1024  # 10MB
+UPLOAD_STORAGE_PATH: Final[Path] = Path("/var/echoui/uploads")
+
+
+def validate_hex_color(color: str) -> str:
+    """验证十六进制颜色格式（#RRGGBB）。
+
+    Args:
+        color: 待验证的颜色字符串。
+
+    Returns:
+        str: 验证通过的原始颜色字符串。
+
+    Raises:
+        ConfigError: 格式不合法时抛出。
+
+    Examples:
+        >>> validate_hex_color("#FF6B6B")
+        '#FF6B6B'
+        >>> validate_hex_color("#abc")
+        Traceback (most recent call last):
+            ...
+        ConfigError: 颜色格式无效，期望 #RRGGBB 格式: '#abc'
+    """
+    if not _HEX_COLOR_RE.match(color):
+        raise ConfigError(f"颜色格式无效，期望 #RRGGBB 格式: {color!r}")
+    return color
+
+
+def validate_upload_file(
+    original_filename: str,
+    content: bytes,
+) -> tuple[str, bytes]:
+    """验证并净化上传文件。
+
+    安全处理:
+    1. 检查文件大小（不超过 MAX_UPLOAD_SIZE_BYTES）
+    2. 检查扩展名白名单
+    3. 将文件名替换为 UUID（防止路径遍历）
+
+    Args:
+        original_filename: 用户上传的原始文件名。
+        content: 文件内容字节。
+
+    Returns:
+        tuple[str, bytes]: 净化后的（安全文件名, 原始内容）。
+
+    Raises:
+        InputError: 文件大小超限或类型不允许时抛出。
+
+    Examples:
+        >>> name, _ = validate_upload_file("photo.jpg", b"fake-image-data")
+        >>> name.endswith(".jpg")
+        True
+        >>> import uuid
+        >>> uuid.UUID(name[:-4])  # 验证文件名为 UUID 格式
+        UUID(...)
+    """
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise InputError(
+            f"文件大小超限: {len(content)} 字节 > "
+            f"{MAX_UPLOAD_SIZE_BYTES} 字节"
+        )
+
+    suffix = Path(original_filename).suffix.lower()
+    if suffix not in ALLOWED_UPLOAD_EXTENSIONS:
+        raise InputError(
+            f"文件类型不允许: {suffix!r}，"
+            f"支持: {sorted(ALLOWED_UPLOAD_EXTENSIONS)}"
+        )
+
+    safe_name = f"{uuid.uuid4().hex}{suffix}"
+    return safe_name, content
+
+
+def sanitize_html_content(text: str) -> str:
+    """转义 HTML 特殊字符，防止 XSS 注入。
+
+    仅转义 5 个核心字符（&, <, >, ", '），
+    不依赖外部库，适用于所有 Python 版本。
+
+    Args:
+        text: 待净化的用户输入文本。
+
+    Returns:
+        str: HTML 安全的转义字符串。
+
+    Examples:
+        >>> sanitize_html_content('<script>alert("xss")</script>')
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+    """
+    return (
+        text
+        .replace("&", "&amp;")    # 必须第一个处理
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )
+```
+
+### 11.2 审计日志规范
+
+```python
+# src/echoui/utils/audit_logger.py
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Optional
+
+
+class AuditAction(str, Enum):
+    """审计动作枚举。"""
+
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    DATA_CREATE = "DATA_CREATE"
+    DATA_UPDATE = "DATA_UPDATE"
+    DATA_DELETE = "DATA_DELETE"
+    FILE_UPLOAD = "FILE_UPLOAD"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+
+
+audit_logger = logging.getLogger("echoui.audit")
+
+
+def log_audit_event(
+    action: AuditAction,
+    user_id: Optional[str],
+    resource: str,
+    result: str,
+    extra: Optional[dict[str, Any]] = None,
+) -> None:
+    """记录审计日志事件。
+
+    输出格式: JSON 单行，包含时间、用户、动作、资源、结果。
+    日志文件权限应设置为 600，定期归档。
+
+    Args:
+        action: 审计动作类型。
+        user_id: 操作用户 ID，未认证时为 None。
+        resource: 操作的资源标识（如 "users/123"）。
+        result: 操作结果（"success" 或错误描述）。
+        extra: 附加上下文信息（不含敏感数据）。
+    """
+    event: dict[str, Any] = {
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "action": action.value,
+        "user_id": user_id or "anonymous",
+        "resource": resource,
+        "result": result,
+    }
+    if extra:
+        event["extra"] = extra
+
+    audit_logger.info(json.dumps(event, ensure_ascii=False))
+```
+
+---
+
+## 十二、开发工作流
+
+### 12.1 跨版本兼容层
+
+```python
+# src/echoui/utils/compat.py
+from __future__ import annotations
+
+import asyncio
+import sys
+from typing import Any
+
+# ============================================================
+# typing 兼容导入（3.8–3.14 统一入口）
+# ============================================================
+
+if sys.version_info >= (3, 11):
+    from typing import Self, assert_never
+else:
+    from typing_extensions import Self, assert_never
+
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec, TypeAlias
+else:
+    from typing_extensions import ParamSpec, TypeAlias
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated, get_type_hints
+else:
+    from typing_extensions import Annotated, get_type_hints
+
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Final,
+    FrozenSet,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Set,
+    Tuple,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
+
+# ============================================================
+# Windows 平台配置（必须在 asyncio 操作前调用）
+# ============================================================
+
+def configure_platform() -> None:
+    """配置平台特定的运行时环境。
+
+    必须在程序启动时、任何 asyncio 操作之前调用。
+
+    配置内容:
+    - Windows: 设置 UTF-8 控制台编码，配置 SelectorEventLoop（兼容 aiohttp）
+    - 所有平台: 无其他副作用
+    """
+    if sys.platform != "win32":
+        return
+
+    # 设置 UTF-8 输出编码（避免中文乱码）
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    # 使用 SelectorEventLoop（与 aiohttp 等库最兼容）
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
+# ============================================================
+# 跨版本异步运行器
+# ============================================================
+
+def run_async(coro: Any) -> Any:
+    """跨版本兼容的异步协程运行器（3.7–3.14）。
+
+    Args:
+        coro: 异步协程对象。
+
+    Returns:
+        协程的返回值。
+
+    Examples:
+        >>> import asyncio
+        >>> async def sample() -> int:
+        ...     return 42
+        >>> run_async(sample())
+        42
+    """
+    if sys.version_info >= (3, 7):
+        return asyncio.run(coro)
+    # Python 3.6 回退（按需保留）
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        try:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        finally:
+            loop.close()
+```
+
+### 12.2 路径工具
+
+```python
+# src/echoui/utils/path_utils.py
+from __future__ import annotations
+
+import os
+import tempfile
+from pathlib import Path
+
+
+def get_project_root() -> Path:
+    """获取项目根目录（包含 pyproject.toml 的目录）。
+
+    Returns:
+        Path: 项目根目录的绝对路径。
+    """
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    return current.parent
+
+
+def get_temp_dir() -> Path:
+    """获取跨平台临时目录。
+
+    Returns:
+        Path: 系统临时目录路径。
+    """
+    return Path(tempfile.gettempdir())
+
+
+def ensure_dir(path: Path) -> Path:
+    """确保目录存在，不存在时递归创建。
+
+    Args:
+        path: 目标目录路径。
+
+    Returns:
+        Path: 确保存在的目录路径（同输入）。
+    """
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def read_text(path: Path) -> str:
+    """使用 UTF-8 编码读取文本文件（跨平台，统一换行符）。
+
+    Args:
+        path: 文件路径。
+
+    Returns:
+        str: 文件内容（换行符统一为 LF）。
+    """
+    with open(path, encoding="utf-8", newline="") as file_handle:
+        return file_handle.read()
+
+
+def write_text(path: Path, content: str) -> None:
+    """使用 UTF-8 编码写入文本文件（统一 LF 换行符）。
+
+    Args:
+        path: 目标文件路径。
+        content: 待写入文本内容。
+    """
+    ensure_dir(path.parent)
+    with open(path, mode="w", encoding="utf-8", newline="\n") as file_handle:
+        file_handle.write(content)
+```
+
+### 12.3 CJK文本工具
+
+```python
+# src/echoui/utils/text.py
+from __future__ import annotations
+
+import unicodedata
+from typing import Optional
+
+
+def get_display_width(text: str) -> int:
+    """计算字符串的终端显示宽度（处理 CJK 全角字符）。
+
+    全角字符（CJK、全角标点等）计为宽度 2，
+    其余字符计为宽度 1。
+
+    Args:
+        text: 待计算的字符串。
+
+    Returns:
+        int: 终端显示宽度。
+
+    Examples:
+        >>> get_display_width("Hello")
+        5
+        >>> get_display_width("你好")
+        4
+        >>> get_display_width("Hi你好")
+        8
+        >>> get_display_width("")
+        0
+    """
+    try:
+        import wcwidth
+        width = wcwidth.wcswidth(text)
+        if width < 0:
+            # 包含不可打印字符时回退到 unicodedata 方法
+            return _compute_width_fallback(text)
+        return width
+    except ImportError:
+        return _compute_width_fallback(text)
+
+
+def _compute_width_fallback(text: str) -> int:
+    """不依赖 wcwidth 的宽度计算回退实现。"""
+    total = 0
+    for char in text:
+        east_asian = unicodedata.east_asian_width(char)
+        total += 2 if east_asian in ("W", "F") else 1
+    return total
+
+
+def truncate_to_width(text: str, max_width: int, ellipsis: str = "...") -> str:
+    """按显示宽度截断字符串，超出部分替换为省略号。
+
+    Args:
+        text: 待截断的字符串。
+        max_width: 最大显示宽度。
+        ellipsis: 省略号字符串，默认 "..."。
+
+    Returns:
+        str: 截断后的字符串，宽度不超过 max_width。
+
+    Examples:
+        >>> truncate_to_width("Hello World", 8)
+        'Hello...'
+        >>> truncate_to_width("你好世界", 6)
+        '你好...'
+        >>> truncate_to_width("Hi", 10)
+        'Hi'
+    """
+    if get_display_width(text) <= max_width:
+        return text
+
+    ellipsis_width = get_display_width(ellipsis)
+    available = max_width - ellipsis_width
+    if available <= 0:
+        return ellipsis[:max_width]
+
+    result = []
+    current_width = 0
+    for char in text:
+        char_width = get_display_width(char)
+        if current_width + char_width > available:
+            break
+        result.append(char)
+        current_width += char_width
+
+    return "".join(result) + ellipsis
+
+
+def pad_to_width(
+    text: str,
+    target_width: int,
+    align: str = "left",
+    fill_char: str = " ",
+) -> str:
+    """按显示宽度填充字符串到目标宽度。
+
+    Args:
+        text: 待填充的字符串。
+        target_width: 目标显示宽度。
+        align: 对齐方式（left/center/right）。
+        fill_char: 填充字符，默认空格。
+
+    Returns:
+        str: 填充后的字符串。
+
+    Raises:
+        ValueError: 当 align 参数非法时抛出。
+
+    Examples:
+        >>> pad_to_width("Hi", 6, "left")
+        'Hi    '
+        >>> pad_to_width("Hi", 6, "right")
+        '    Hi'
+        >>> pad_to_width("你好", 8, "center")
+        '  你好  '
+    """
+    current_width = get_display_width(text)
+    padding_needed = max(0, target_width - current_width)
+
+    if align == "left":
+        return text + fill_char * padding_needed
+    if align == "right":
+        return fill_char * padding_needed + text
+    if align == "center":
+        left_pad = padding_needed // 2
+        right_pad = padding_needed - left_pad
+        return fill_char * left_pad + text + fill_char * right_pad
+
+    raise ValueError(f"非法对齐方式: {align!r}，支持: left/center/right")
+
+
+def repeat_char_gradient(
+    char: str,
+    count: int,
+    start_color: str,
+    end_color: str,
+    renderer: object,
+) -> str:
+    """生成渐变着色的重复字符序列。
+
+    Args:
+        char: 重复的字符。
+        count: 重复次数。
+        start_color: 渐变起始色（#RRGGBB）。
+        end_color: 渐变结束色（#RRGGBB）。
+        renderer: GradientRenderer 实例。
+
+    Returns:
+        str: 渐变着色的字符序列。
+    """
+    text = char * count
+    from echoui.core.renderer import GradientRenderer
+    if isinstance(renderer, GradientRenderer):
+        return renderer.render_text_ansi(text, start_color, end_color)
+    return text
+```
+
+### 12.4 pyproject.toml 完整配置
+
+```toml
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "echoui"
+version = "2.0.0"
+description = "纯Python全栈UI框架 - 用Python语法描述一切，无需HTML/JS/CSS"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+keywords = ["ui", "tui", "terminal", "web", "framework", "python"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+    "typing-extensions>=4.7.0",   # Python < 3.11 兼容
+    "rich>=13.0.0",                # 终端渲染
+    "wcwidth>=0.2.0",              # CJK 字符宽度
+    "aiohttp>=3.9.0",              # Web 适配器
+    "psutil>=5.9.0",               # 性能等级检测
+]
+
+[project.optional-dependencies]
+flask = ["flask>=2.3.0"]
+fastapi = ["fastapi>=0.100.0", "uvicorn>=0.23.0"]
+qt = ["PyQt6>=6.5.0"]
+db-postgres = ["asyncpg>=0.28.0"]
+db-mysql = ["aiomysql>=0.2.0"]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.5.0",
+    "black>=23.9.0",
+    "isort>=5.12.0",
+    "pylint>=3.0.0",
+    "flake8>=6.1.0",
+    "typing-extensions>=4.7.0",
+    "aiohttp>=3.9.0",
+    "aiosqlite>=0.19.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312", "py313"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+  | \.mypy_cache
+  | \.pytest_cache
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["echoui"]
+known_third_party = [
+    "aiohttp", "flask", "fastapi", "rich", "wcwidth",
+    "psutil", "pytest", "mypy",
+]
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+show_error_codes = true
+exclude = ["venv", "build", "dist", "docs", "examples"]
+
+[[tool.mypy.overrides]]
+module = ["wcwidth.*", "psutil.*", "rich.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-v",
+    "--doctest-modules",
+]
+markers = [
+    "slow: 标记为慢速测试（>1s）",
+    "integration: 标记为集成测试（需要外部服务）",
+    "e2e: 标记为端到端测试",
+    "windows_only: 仅在 Windows 平台运行",
+    "unix_only: 仅在 Unix 平台运行",
+]
+
+[tool.coverage.run]
+source = ["src/echoui"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__init__.py",
+    "*/examples/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 90
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "EchoUI 测试覆盖率报告"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.pylint.main]
+py-version = "3.8"
+ignore = ["venv", "build", "dist", ".git", "examples"]
+jobs = 0  # 自动检测 CPU 核心数并行运行
+
+[tool.pylint.messages_control]
+disable = [
+    "C0114",  # missing-module-docstring（由文件头注释替代）
+    "R0903",  # too-few-public-methods（值对象常见）
+    "W0212",  # protected-access（测试中访问私有成员合理）
+]
+
+[tool.pylint.format]
+max-line-length = 88
+indent-string = "    "
+
+[tool.pylint.design]
+max-args = 7
+max-attributes = 12
+max-bool-expr = 5
+max-branches = 12
+max-locals = 15
+max-returns = 6
+max-statements = 50
+```
+
+### 12.5 完整质量检查命令
+
+```bash
+# ============================================================
+# 日常开发（快速反馈）
+# ============================================================
+
+# 格式化 + 排序
+black src/ tests/ && isort src/ tests/
+
+# 类型检查
+mypy src/ --strict
+
+# 快速测试（跳过慢速和 E2E）
+pytest -m "not slow and not e2e" -v --tb=short
+
+# ============================================================
+# 提交前（完整检查）
+# ============================================================
+
+black src/ tests/ && \
+isort src/ tests/ && \
+mypy src/ --strict && \
+pylint src/echoui/ && \
+flake8 src/ tests/ && \
+pytest \
+    --cov=src/echoui \
+    --cov-report=html:htmlcov \
+    --cov-report=term-missing \
+    --cov-report=xml:coverage.xml \
+    --cov-fail-under=90 \
+    --doctest-modules src/echoui/ \
+    -v
+
+# ============================================================
+# 分项验证覆盖率
+# ============================================================
+
+# 核心引擎（要求 95%）
+pytest tests/unit/core/ \
+    --cov=src/echoui/core \
+    --cov-report=term-missing \
+    --cov-fail-under=95 -v
+
+# 组件库（要求 90%）
+pytest tests/unit/components/ \
+    --cov=src/echoui/components \
+    --cov-report=term-missing \
+    --cov-fail-under=90 -v
+
+# 适配层（要求 80%）
+pytest tests/integration/ \
+    --cov=src/echoui/adapters \
+    --cov-report=term-missing \
+    --cov-fail-under=80 -v
+
+# ============================================================
+# 多版本兼容性验证
+# ============================================================
+
+for env in py38 py39 py310 py311 py312 py313 py314; do
+    echo "=== 测试 $env ==="
+    conda run -n $env pytest tests/ -x -q 2>&1 | tail -5
+done
+
+# ============================================================
+# 构建与发布
+# ============================================================
+
+python -m build
+twine check dist/*
+twine upload --repository testpypi dist/*  # 测试
+twine upload dist/*                         # 正式发布
+```
+
+---
+
+## 十三、全量适配矩阵
+
+### 13.1 视口适配矩阵
+
+```
+维度              覆盖范围                    实现方式
+──────────────────────────────────────────────────────────────
+视口宽度          180px – 7680px              14 级断点 + clamp()
+视口高度          200px – 2160px              高度断点 + dvh 单位
+方向              portrait / landscape        媒体查询 orientation
+交互方式          touch / pointer / stylus    hover/pointer 媒体查询 + 44px 触控目标
+像素密度          1x – 3x                     DPR 感知资源加载（1x/2x/3x 图）
+色彩模式          light / dark / high-contrast prefers-color-scheme + 主题切换
+动画偏好          no-preference / reduce      prefers-reduced-motion
+折叠屏            铰链宽度、双屏              env(fold-width), horizontal-viewport-segments
+安全区域          刘海屏、手势条              safe-area-inset-* env()
+国际化            LTR / RTL / CJK             逻辑属性、dir="rtl"、lang 选择器
+性能分级          low / medium / high         psutil 检测 + 功能降级策略
+可访问性          WCAG 2.1 AA                 焦点指示器、对比度、aria-*
+```
+
+### 13.2 typing 兼容矩阵
+
+```
+特性                                3.8   3.9   3.10  3.11  3.12  3.13  3.14
+─────────────────────────────────────────────────────────────────────────────
+from __future__ import annotations  Yes   Yes   Yes   Yes   Yes   Yes   Yes
+list[str] 内建泛型                  No    Yes   Yes   Yes   Yes   Yes   Yes
+dict[str, int] 内建泛型             No    Yes   Yes   Yes   Yes   Yes   Yes
+X | Y 联合语法                      No    No    Yes   Yes   Yes   Yes   Yes
+match 语句                          No    No    Yes   Yes   Yes   Yes   Yes
+ExceptionGroup                      No    No    No    Yes   Yes   Yes   Yes
+tomllib (标准库)                    No    No    No    Yes   Yes   Yes   Yes
+typing.Self                         No    No    No    Yes   Yes   Yes   Yes
+@override 装饰器                    No    No    No    Yes   Yes   Yes   Yes
+dataclass(slots=True)               No    No    Yes   Yes   Yes   Yes   Yes
+dataclass(kw_only=True)             No    No    Yes   Yes   Yes   Yes   Yes
+asyncio.TaskGroup                   No    No    No    Yes   Yes   Yes   Yes
+typing.ParamSpec                    No    No    Yes   Yes   Yes   Yes   Yes
+typing.TypeAlias                    No    No    Yes   Yes   Yes   Yes   Yes
+
+解决方案: 使用 typing_extensions>=4.7.0 回填所有低版本缺失特性
+入口: src/echoui/utils/compat.py 统一管理所有兼容导入
+```
+
+### 13.3 后端适配器兼容矩阵
+
+```
+后端          适配器类            最低版本        异步    WebSocket   桌面    安装方式
+─────────────────────────────────────────────────────────────────────────────────────
+aiohttp      AiohttpAdapter      aiohttp 3.9     Yes     Yes         No      pip install echoui[aiohttp]（已包含）
+Flask        FlaskAdapter        flask 2.3       No      No          No      pip install echoui[flask]
+FastAPI      FastAPIAdapter      fastapi 0.100   Yes     Yes         No      pip install echoui[fastapi]
+Tkinter      TkinterAdapter      标准库          No      No          Yes     无需额外安装
+PyQt5        PyQtAdapter         PyQt5 5.15      No      No          Yes     pip install PyQt5
+PyQt6        PyQtAdapter         PyQt6 6.5       No      No          Yes     pip install echoui[qt]
+Console      TerminalAdapter     标准库          Yes     No          No      无需额外安装（默认）
+```
+
+---
+
+## 附录：开发者快速上手
+
+```bash
+# ============================================================
+# 从零搭建 EchoUI 开发环境（5 分钟）
+# ============================================================
+
+# 1. 克隆仓库
+git clone https://github.com/echoui/echoui.git
+cd echoui
+
+# 2. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate        # Linux/macOS
+# .\venv\Scripts\activate       # Windows
+
+# 3. 安装开发依赖
+pip install -e ".[dev]"
+
+# 4. 验证环境
+pytest tests/ -x -q
+# 预期输出: X passed in Xs
+
+# 5. 运行终端演示
+python examples/terminal_demo.py
+
+# ============================================================
+# 新功能开发标准流程（TDD）
+# ============================================================
+
+# 步骤 1: 新建测试文件（RED）
+touch tests/unit/components/test_my_widget.py
+
+# 步骤 2: 编写失败测试
+# （参考 tests/unit/components/test_box_builder.py）
+
+# 步骤 3: 运行测试，确认失败
+pytest tests/unit/components/test_my_widget.py -v
+# 预期: FAILED
+
+# 步骤 4: 新建组件实现文件
+touch src/echoui/components/my_widget.py
+
+# 步骤 5: 编写最小实现使测试通过（GREEN）
+
+# 步骤 6: 再次运行测试，确认通过
+pytest tests/unit/components/test_my_widget.py -v
+# 预期: PASSED
+
+# 步骤 7: 重构（REFACTOR）
+# 优化代码质量，不改变行为
+
+# 步骤 8: 验证覆盖率
+pytest tests/unit/components/ \
+    --cov=src/echoui/components \
+    --cov-report=term-missing \
+    --cov-fail-under=90
+
+# 步骤 9: 完整质量检查
+black src/ tests/ && isort src/ tests/ && mypy src/ --strict
+```
+
+---
+
+**文档结束**
+
+本规范定义了 `echoui` 框架必须满足的全部技术标准。任何实现偏差均为不符合生产就绪标准，CI 流水线必须阻断合并。

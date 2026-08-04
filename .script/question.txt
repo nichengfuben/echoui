@@ -1,0 +1,232 @@
+```text
+# question.txt — 插件系统设计前置调查问卷
+# 用途：Agent 读取后将答案写入 .agents/PLUGIN_SURVEY.md
+# 执行方式：Agent 扫描项目，逐题作答，结果保存到指定路径
+
+## 执行指令
+
+读取本文件后，立即按以下步骤执行，无需等待确认：
+
+1. 扫描当前项目的实际文件结构与代码内容
+2. 逐题回答以下所有问题，答案必须基于实际扫描结果，不得假设
+3. 将所有答案写入 .agents/PLUGIN_SURVEY.md（文件不存在则创建）
+4. 输出确认语："[PLUGIN_SURVEY.md 已生成]"
+
+---
+
+## Q1：项目整体完成度
+
+请执行以下命令并将完整输出写入答案：
+
+```bash
+find src/echoui -type f -name "*.py" \
+    -not -path "*/__pycache__/*" | sort
+
+find tests -type f -name "*.py" \
+    -not -path "*/__pycache__/*" | sort
+```
+
+然后回答：
+- 已存在的源码文件完整列表（含行数：`wc -l` 结果）
+- 已存在的测试文件完整列表
+- 哪些模块在 CODE_GUIDE.txt 中要求但当前缺失
+
+---
+
+## Q2：公开 API 现状
+
+请读取 `src/echoui/__init__.py` 的完整内容，回答：
+- 当前 `__all__` 列表中有哪些符号
+- 当前实际可导入的顶层符号有哪些
+- `__version__` 的当前值
+
+---
+
+## Q3：核心引擎可用接口
+
+请分别读取以下文件，列出每个文件中所有的公开类、公开函数、公开常量（带签名）：
+- `src/echoui/core/exceptions.py`
+- `src/echoui/core/renderer.py`
+- `src/echoui/core/theme.py`
+- `src/echoui/core/state.py`
+- `src/echoui/core/event_bus.py`
+- `src/echoui/core/layout.py`
+- `src/echoui/core/platform_detector.py`
+
+如果某个文件不存在，明确写出"不存在"。
+
+---
+
+## Q4：组件基类契约
+
+请读取 `src/echoui/components/base_component.py`，回答：
+- `BaseComponent.__init__` 的完整参数列表（含类型和默认值）
+- `BaseComponent` 暴露的所有公开方法和属性（含返回类型）
+- `render()` 抽象方法的签名和约定
+- 链式方法的返回类型约定（当前是用字符串 `"BaseComponent"` 还是 `Self`？）
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q5：适配器体系现状
+
+请读取 `src/echoui/adapters/base_adapter.py`，回答：
+- `BaseAdapter.__init__` 的完整参数列表
+- 所有已实现的抽象方法和装饰器工厂方法
+- 路由注册的内部数据结构（`_routes` 的键格式）
+- 当前已实现的具体适配器列表（扫描 `src/echoui/adapters/` 目录）
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q6：工具层可用函数
+
+请读取以下文件，列出每个文件中所有公开函数的签名：
+- `src/echoui/utils/text.py`
+- `src/echoui/utils/color.py`
+- `src/echoui/utils/validators.py`
+- `src/echoui/utils/compat.py`
+- `src/echoui/utils/path_utils.py`
+
+如果某个文件不存在，明确写出"不存在"。
+
+---
+
+## Q7：测试框架与 conftest 现状
+
+请读取 `tests/conftest.py`，回答：
+- 所有已定义的 fixture 名称、scope 和返回类型
+- 当前 `asyncio_mode` 配置（在 `pyproject.toml` 中查找）
+- 当前整体测试覆盖率（运行 `pytest --cov=src/echoui -q --tb=no 2>/dev/null | tail -5`）
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q8：依赖环境现状
+
+请回答：
+- `pyproject.toml` 中 `[project.dependencies]` 的完整列表
+- `pyproject.toml` 中 `[project.optional-dependencies]` 的完整列表
+- 当前 Python 版本（`python --version`）
+- 当前已安装的关键包版本（`pip show aiohttp rich wcwidth psutil 2>/dev/null`）
+
+---
+
+## Q9：AGENTS.md 历史意外记录
+
+请读取根目录 `AGENTS.md`（如果存在），回答：
+- 所有 `[CRITICAL]` 条目的标题列表
+- 所有 `[WARNING]` 条目的标题列表
+- 最近 5 条意外日志的标题和日期
+- 是否有与"模块发现"、"动态加载"、"import hook"相关的任何记录
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q10：当前项目中与"扩展性"相关的任何现有代码
+
+请在整个 `src/echoui/` 目录中搜索以下关键词，报告所有匹配的文件和行号：
+
+```bash
+grep -rn "plugin\|Plugin\|extension\|Extension\|hook\|Hook\|registry\|Registry\|discover\|load_module\|importlib\|entry_point" \
+    src/echoui/ --include="*.py" \
+    -not -path "*/__pycache__/*"
+```
+
+如果没有任何匹配，明确写出"当前无任何扩展性相关代码"。
+
+---
+
+## Q11：EventBus 的当前实现细节
+
+请读取 `src/echoui/core/event_bus.py`（如果存在），回答：
+- 事件的数据结构（事件名是字符串还是枚举？载荷类型？）
+- `subscribe` / `publish` 的完整签名
+- 是否支持异步监听器
+- 是否支持通配符订阅或事件前缀匹配
+- 是否有优先级机制
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q12：Theme 注册表的实现细节
+
+请读取 `src/echoui/core/theme.py`（如果存在），回答：
+- `Theme._registry` 的类型和初始化方式
+- `Theme.register()` 是否有冲突保护（注册同名主题时的行为）
+- `Theme._initialized` 的懒加载机制
+- 以上机制是否可以作为插件系统注册表的参考模式
+
+如果文件不存在，明确写出"不存在"。
+
+---
+
+## Q13：打包与分发现状
+
+请读取 `pyproject.toml`，回答：
+- `[build-system]` 的配置（构建后端）
+- 是否有 `[project.entry-points]` 或 `[project.scripts]` 配置
+- `[project.optional-dependencies]` 中是否有任何 extras 可以作为插件分发模式的参考
+- 包的 `packages` 或 `find` 配置（setuptools 的 `[tool.setuptools]` 部分）
+
+---
+
+## Q14：当前存在的最大文件（复杂度评估）
+
+请执行：
+
+```bash
+find src/echoui -name "*.py" \
+    -not -path "*/__pycache__/*" \
+    -exec wc -l {} + | sort -rn | head -10
+```
+
+列出行数最多的 10 个文件，评估哪些文件在添加插件系统后可能超出 800 行限制，需要提前拆分。
+
+---
+
+## 输出格式要求
+
+将所有答案写入 `.agents/PLUGIN_SURVEY.md`，格式如下：
+
+```markdown
+# PLUGIN_SURVEY.md — 插件系统设计前置调查结果
+
+**生成时间**: {ISO 时间戳}
+**生成方式**: Agent 基于实际项目扫描生成，非推断
+
+---
+
+## Q1 答案：项目整体完成度
+{答案}
+
+## Q2 答案：公开 API 现状
+{答案}
+
+## Q3 答案：核心引擎可用接口
+{答案}
+
+（以此类推，Q4 到 Q14）
+
+---
+
+## 综合评估
+
+### 插件系统实现的已有基础
+{列出可以直接复用的现有机制，如 Theme.register() 模式、EventBus、BaseComponent 等}
+
+### 插件系统实现的主要障碍
+{列出当前缺失的、需要新建的基础设施}
+
+### 文件拆分风险
+{列出可能因添加插件系统代码而超出 800 行的文件}
+
+### 建议的实现切入点
+{基于扫描结果，建议从哪个现有文件/机制开始扩展}
+```
+```

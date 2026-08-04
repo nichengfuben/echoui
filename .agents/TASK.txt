@@ -1,0 +1,968 @@
+```markdown
+# TASK.txt — EchoUI Agent 任务调度与自检循环指南
+
+**版本**: 1.0.0
+**用途**: 每次会话开始时的唯一入口文件，Agent 必须从本文件出发完成所有工作
+**循环机制**: 本文件设计为多轮循环使用，每次收到本文件即重新执行完整流程
+
+---
+
+## 零、收到本文件后立即执行（无需等待确认）
+
+```
+你收到了 TASK.txt。
+立即按照本文件的完整流程执行，不得询问"需要我做什么"。
+不得跳过任何阶段，不得简化任何检查步骤。
+```
+
+---
+
+## 一、第一步：读取核心规范文件（强制，按顺序执行）
+
+按以下顺序读取文件，每个文件读取后在内存中保留关键规则，再读取下一个：
+
+```
+步骤 1.1  读取 .agents/MISTAKE_GUIDE.txt
+          重点记忆：[CRITICAL-001] 到 [CRITICAL-012] 的所有禁止行为
+          重点记忆：行为准则第十一部分的禁止行为清单
+
+步骤 1.2  读取 .agents/CODE_GUIDE.txt
+          重点记忆：项目架构分层、文件路径约定、公开 API 导出规则
+          重点记忆：组件契约、链式方法规范、主题系统规范
+
+步骤 1.3  读取根目录 AGENTS.md（如果存在）
+          重点记忆：所有 [CRITICAL] 和 [WARNING] 条目
+          重点记忆：最近发现的意外日志中的最新条目
+```
+
+读取完成后，输出以下确认语（必须输出，不得省略）：
+
+```
+[规范读取完成]
+- MISTAKE_GUIDE.txt: 已读取，记录 {N} 条禁止行为
+- CODE_GUIDE.txt: 已读取，记录项目结构和核心规范
+- AGENTS.md: 已读取 / 不存在（二选一）
+- 发现历史意外记录: {N} 条（如果 AGENTS.md 存在）
+```
+
+---
+
+## 二、第二步：项目状态扫描（自动判断当前阶段）
+此步骤中禁止相信'AGENTS.md'的内容，先进行扫描并对每个'AGENTS.md'进行更新，推荐使用子代理分析和探索项目，让子代理把每个文件都读一遍
+读取规范文件后，立即扫描项目当前状态，判断本次会话处于哪个阶段。
+
+### 2.1 执行扫描命令
+
+```bash
+# 扫描一：检查项目根目录结构
+find . -maxdepth 3 -type f -name "*.py" \
+    -not -path "*/venv/*" \
+    -not -path "*/.venv/*" \
+    -not -path "*/__pycache__/*" \
+    -not -path "*/node_modules/*" \
+    | sort
+
+# 扫描二：检查 pyproject.toml 是否存在
+test -f pyproject.toml && echo "EXISTS" || echo "MISSING"
+
+# 扫描三：统计已有源码文件数
+find src/echoui -type f -name "*.py" \
+    -not -path "*/__pycache__/*" \
+    2>/dev/null | wc -l
+
+# 扫描四：统计已有测试文件数
+find tests -type f -name "test_*.py" \
+    2>/dev/null | wc -l
+
+# 扫描五：检查哪些核心模块已存在
+for module in \
+    "src/echoui/__init__.py" \
+    "src/echoui/core/exceptions.py" \
+    "src/echoui/core/renderer.py" \
+    "src/echoui/core/theme.py" \
+    "src/echoui/core/state.py" \
+    "src/echoui/core/layout.py" \
+    "src/echoui/core/typography.py" \
+    "src/echoui/core/spacing.py" \
+    "src/echoui/core/design_tokens.py" \
+    "src/echoui/core/platform_detector.py" \
+    "src/echoui/core/event_bus.py" \
+    "src/echoui/components/base_component.py" \
+    "src/echoui/components/console_ui.py" \
+    "src/echoui/components/box_builder.py" \
+    "src/echoui/components/table_builder.py" \
+    "src/echoui/components/progress_bar.py" \
+    "src/echoui/components/spinner.py" \
+    "src/echoui/components/notification.py" \
+    "src/echoui/adapters/base_adapter.py" \
+    "src/echoui/adapters/terminal_adapter.py" \
+    "src/echoui/utils/compat.py" \
+    "src/echoui/utils/text.py" \
+    "src/echoui/utils/color.py" \
+    "src/echoui/utils/validators.py" \
+    "src/echoui/utils/path_utils.py" \
+    "tests/conftest.py"; do
+    test -f "$module" && echo "OK   $module" || echo "MISS $module"
+done
+
+# 扫描六：运行现有测试（如果有）
+pytest --tb=short -q 2>/dev/null || echo "NO_TESTS_YET"
+
+# 扫描七：检查覆盖率（如果测试存在）
+pytest --cov=src/echoui --cov-report=term-missing -q 2>/dev/null \
+    || echo "COVERAGE_CHECK_SKIPPED"
+```
+
+### 2.2 阶段判断矩阵
+
+根据扫描结果，对照以下矩阵判断当前阶段，**选择最符合的阶段**：
+
+```
+阶段 0：项目初始化
+  判断条件：
+    - pyproject.toml 不存在
+    - src/echoui/ 目录不存在或为空
+    - 源码文件数 < 3
+  进入：第三部分 → 阶段 0 任务
+
+阶段 1：核心引擎建设
+  判断条件：
+    - pyproject.toml 存在
+    - src/echoui/ 存在
+    - src/echoui/core/ 下缺少任意一个文件
+    - 或 src/echoui/utils/ 下缺少任意一个文件
+  进入：第三部分 → 阶段 1 任务
+
+阶段 2：组件库建设
+  判断条件：
+    - 所有 core/ 文件存在
+    - 所有 utils/ 文件存在
+    - components/ 下缺少任意一个文件
+    - 或 adapters/ 下缺少 base_adapter.py / terminal_adapter.py
+  进入：第三部分 → 阶段 2 任务
+
+阶段 3：测试补全
+  判断条件：
+    - 所有源码文件存在
+    - tests/ 下文件数 < 15
+    - 或测试运行失败
+    - 或覆盖率低于要求（core<95%, components<90%, utils<90%）
+  进入：第三部分 → 阶段 3 任务
+
+阶段 4：自检与修复
+  判断条件：
+    - 所有源码文件存在
+    - tests/ 下文件数 >= 15
+    - 测试全部通过
+    - 但覆盖率仍未达标
+    - 或存在 lint/type 错误
+  进入：第三部分 → 阶段 4 任务
+
+阶段 5：完成验证
+  判断条件：
+    - 所有源码文件存在
+    - 所有测试通过
+    - 所有覆盖率达标（core>=95%, components>=90%, utils>=90%, 整体>=90%）
+    - mypy 无报错
+    - pylint 无严重错误
+  进入：第三部分 → 阶段 5 任务
+```
+
+输出阶段判断结果（必须输出）：
+
+```
+[阶段判断]
+当前阶段: 阶段 {N} — {阶段名称}
+判断依据:
+  - 源码文件数: {N}
+  - 测试文件数: {N}
+  - 缺失的关键文件: {列表，或"无"}
+  - 测试状态: {通过N个/失败N个/无测试}
+  - 覆盖率: {core: N% / components: N% / 整体: N%，或"未测量"}
+进入任务: 第三部分阶段 {N} 任务
+```
+
+---
+
+## 三、第三步：按阶段执行任务
+
+### 阶段 0 任务：项目初始化
+
+**目标**: 建立完整的项目骨架，使项目可以被 Python 识别和导入。
+
+**执行清单**（按顺序，逐项完成）:
+
+```
+[ ] 0.1  创建目录结构
+         mkdir -p src/echoui/{core,components,adapters,db,interfaces,utils}
+         mkdir -p tests/{unit/{core,components,utils},integration,e2e}
+         mkdir -p .agents docs examples
+
+[ ] 0.2  创建 pyproject.toml
+         内容来源：CODE_GUIDE.txt 第八部分 pyproject.toml 完整配置
+         必须包含所有工具配置（black/isort/mypy/pytest/coverage）
+
+[ ] 0.3  创建 requirements.txt 和 requirements-dev.txt
+         运行时依赖：typing-extensions>=4.7.0, rich>=13.0.0,
+                     wcwidth>=0.2.0, aiohttp>=3.9.0, psutil>=5.9.0
+         开发依赖：pytest>=7.4.0, pytest-asyncio>=0.23.0,
+                   pytest-cov>=4.1.0, mypy>=1.5.0, black>=23.9.0,
+                   isort>=5.12.0, pylint>=3.0.0, flake8>=6.1.0,
+                   aiosqlite>=0.19.0
+
+[ ] 0.4  为所有目录创建 __init__.py（内容暂为空，后续填充）
+
+[ ] 0.5  创建根目录 AGENTS.md
+         按照 MISTAKE_GUIDE.txt 第十二部分的模板创建
+         必须包含文件指示栏
+         必须包含项目身份描述
+         必须包含已知的所有 [CRITICAL] 条目（从 MISTAKE_GUIDE.txt 提取）
+
+[ ] 0.6  验证目录结构
+         find src tests -type f | sort
+         确认所有目录和 __init__.py 均已创建
+```
+
+完成后输出：
+
+```
+[阶段 0 完成]
+创建的文件: {N} 个
+目录结构: 已建立
+进入下次会话后将自动进入阶段 1
+```
+
+---
+
+### 阶段 1 任务：核心引擎建设
+
+**目标**: 实现 `src/echoui/core/` 和 `src/echoui/utils/` 下的所有模块。
+
+**执行前检查**（先读取，再实现）:
+
+```
+读取已存在的核心文件（如有），了解当前实现状态
+重点读取：CODE_GUIDE.txt 中的核心引擎规范
+重点读取：MISTAKE_GUIDE.txt 中的 [CRITICAL-001] 到 [CRITICAL-009]
+```
+
+**TDD 执行顺序**（每个模块必须遵循）:
+
+```
+对每个缺失的模块，按以下顺序执行：
+  1. 先写测试文件（tests/unit/core/test_{module}.py）
+  2. 运行测试，确认 FAILED（证明测试有效）
+  3. 写实现文件（src/echoui/core/{module}.py）
+  4. 运行测试，确认 PASSED
+  5. 检查覆盖率
+  6. 进行下一个模块
+```
+
+**模块实现优先级**（按此顺序，不得调换）:
+
+```
+优先级 1（其他模块的基础，必须最先完成）:
+  [ ] src/echoui/core/exceptions.py
+      - EchoError（基类）
+      - ConfigError、RenderError、AdapterError、InputError
+      - 所有异常必须有中文 docstring
+      - 测试：tests/unit/core/test_exceptions.py
+
+  [ ] src/echoui/utils/compat.py
+      - configure_platform()（Windows 兼容）
+      - run_async()（跨版本运行器）
+      - 所有 typing 兼容导入（Self/ParamSpec/TypeAlias/Annotated）
+      - 测试：tests/unit/utils/test_compat.py
+
+  [ ] src/echoui/utils/text.py
+      - get_display_width()（CJK 宽度，使用 wcwidth）
+      - truncate_to_width()
+      - pad_to_width()
+      - repeat_char_gradient()
+      - 测试：tests/unit/utils/test_text.py（重点测试 CJK 场景）
+
+优先级 2（核心计算引擎）:
+  [ ] src/echoui/utils/color.py
+      - validate_hex_color()（严格 #RRGGBB 格式）
+      - hex_to_rgb()
+      - interpolate_color()（线性插值）
+      - 测试：tests/unit/utils/test_color.py
+
+  [ ] src/echoui/utils/validators.py
+      - validate_hex_color()（从 color.py 复用）
+      - validate_upload_file()
+      - sanitize_html_content()
+      - 测试：tests/unit/utils/test_validators.py
+
+  [ ] src/echoui/utils/path_utils.py
+      - get_project_root()
+      - get_temp_dir()
+      - ensure_dir()
+      - read_text()（UTF-8，newline=""）
+      - write_text()（UTF-8，newline="\n"）
+      - 测试：tests/unit/utils/test_path_utils.py
+
+  [ ] src/echoui/core/renderer.py
+      - GradientRenderer 类
+      - render_text_ansi()（支持 normal_mode）
+      - render_progress_bar()
+      - get_display_width()（委托给 utils/text.py）
+      - 测试：tests/unit/core/test_renderer.py
+
+优先级 3（设计系统）:
+  [ ] src/echoui/core/theme.py
+      - ThemeConfig（frozen dataclass，16 个颜色字段）
+      - Theme（注册表，9 种内置主题）
+      - Theme.get()、Theme.register()、Theme.list_names()
+      - 测试：tests/unit/core/test_theme.py
+
+  [ ] src/echoui/core/layout.py
+      - Breakpoint 枚举（14 级）
+      - BreakpointConfig（frozen dataclass）
+      - BREAKPOINT_CONFIGS（权威数据源，14 条）
+      - resolve_breakpoint()
+      - 测试：tests/unit/core/test_layout.py
+
+  [ ] src/echoui/core/typography.py
+      - FluidTypeScale（frozen dataclass）
+      - TYPE_SCALE_MAP（8 种字号）
+      - to_css_clamp()
+      - compute_px()
+      - 测试：tests/unit/core/test_typography.py
+
+  [ ] src/echoui/core/spacing.py
+      - SpacingScale（frozen dataclass）
+      - SPACING_MAP（9 级间距）
+      - compute_px()
+      - 测试：tests/unit/core/test_spacing.py
+
+  [ ] src/echoui/core/design_tokens.py
+      - RadiusToken、ShadowToken
+      - RADIUS_MAP（7 级圆角）
+      - SHADOW_MAP（5 级阴影）
+      - BG_SHAPE_TYPES（frozenset）
+      - 测试：tests/unit/core/test_design_tokens.py
+
+优先级 4（状态与事件）:
+  [ ] src/echoui/core/state.py
+      - State[T]（泛型，响应式）
+      - get()、set()、add_listener()、remove_listener()
+      - 测试：tests/unit/core/test_state.py
+
+  [ ] src/echoui/core/event_bus.py
+      - EventBus 类
+      - subscribe()、unsubscribe()、publish()
+      - 测试：tests/unit/core/test_event_bus.py
+
+  [ ] src/echoui/core/platform_detector.py
+      - PerformanceTier 枚举（LOW/MEDIUM/HIGH）
+      - detect_performance_tier()
+      - TIER_FEATURE_MAP（功能降级策略）
+      - 测试：tests/unit/core/test_platform_detector.py
+```
+
+**每个文件完成后的自检**（逐条验证，不得跳过）:
+
+```
+[ ] 文件第一行是 from __future__ import annotations
+[ ] 所有函数/方法有完整类型注解（参数 + 返回值）
+[ ] 所有公共函数有中文 docstring（含 Args/Returns/Raises/Examples）
+[ ] Examples 中的代码可作为 doctest 运行
+[ ] 没有任何 pass 作为功能实现
+[ ] 没有任何 emoji 字符
+[ ] 没有任何 print 语句
+[ ] 没有任何 f-string 格式化的 logger 调用
+[ ] 所有数据类使用 frozen=True（如果是值对象）
+[ ] 文件行数不超过 800 行
+[ ] 函数行数不超过 50 行
+[ ] 嵌套深度不超过 4 层
+[ ] 对应测试文件已创建且测试通过
+```
+
+完成后输出：
+
+```
+[阶段 1 进度报告]
+完成的模块:
+  [OK] src/echoui/core/exceptions.py（{N} 行）
+  [OK] ...
+未完成的模块（留给下次会话）:
+  [PENDING] ...
+测试状态: 通过 {N} 个 / 失败 {N} 个
+覆盖率（core）: {N}%（目标 95%）
+覆盖率（utils）: {N}%（目标 90%）
+```
+
+---
+
+### 阶段 2 任务：组件库建设
+
+**目标**: 实现 `src/echoui/components/` 和 `src/echoui/adapters/` 下的所有模块。
+
+**执行前检查**:
+
+```
+读取所有已存在的 core/ 和 utils/ 文件（了解可用的工具函数）
+读取 CODE_GUIDE.txt 组件库规范部分
+读取 MISTAKE_GUIDE.txt 第五部分（组件开发规范）
+```
+
+**组件实现优先级**:
+
+```
+优先级 1（基础抽象，其他组件的基础）:
+  [ ] src/echoui/components/base_component.py
+      - BaseComponent（ABC）
+      - __init__（renderer/normal_mode/theme，读取环境变量）
+      - show()、hide()、render()（抽象）、__repr__()
+      - 测试：tests/unit/components/test_base_component.py
+
+  [ ] src/echoui/adapters/base_adapter.py
+      - BaseAdapter（ABC）
+      - get()、post()、put()、delete() 装饰器工厂
+      - register_route()
+      - run()、run_async()、stop()（抽象）
+      - 测试：tests/unit/components/test_base_adapter.py（用 Mock）
+
+优先级 2（核心组件）:
+  [ ] src/echoui/components/notification.py
+      - Notification（BaseComponent）
+      - success()、warning()、error()、info()（均返回 self）
+      - normal_mode 下输出纯文本前缀（[OK]/[!]/[X]/[i]）
+      - 测试：tests/unit/components/test_notification.py
+
+  [ ] src/echoui/components/box_builder.py
+      - BoxBuilder（BaseComponent）
+      - build()（返回 str，不是 self）
+      - 支持 border_style: rounded/square/double/ascii
+      - normal_mode 下使用 ASCII 边框
+      - 测试：tests/unit/components/test_box_builder.py
+
+  [ ] src/echoui/components/console_ui.py
+      - ConsoleUI（BaseComponent）
+      - print()、newline()、box()、table()、rule()（均返回 self）
+      - success()、warning()、error()、info()（均返回 self）
+      - run_chat_session()（async）
+      - run_form()（async）
+      - 测试：tests/unit/components/test_console_ui.py
+
+优先级 3（数据展示组件）:
+  [ ] src/echoui/components/table_builder.py
+      - TableBuilder（BaseComponent）
+      - set_headers()、add_row()、set_alignments()（均返回 self）
+      - render()（返回 str）
+      - CJK 宽度使用 get_display_width()
+      - 测试：tests/unit/components/test_table_builder.py
+
+  [ ] src/echoui/components/key_value_list.py
+      - KeyValueList（BaseComponent）
+      - render()（返回 str）
+      - 测试：tests/unit/components/test_key_value_list.py
+
+  [ ] src/echoui/components/tree_view.py
+      - TreeView（BaseComponent）
+      - render()（返回 str）
+      - 测试：tests/unit/components/test_tree_view.py
+
+  [ ] src/echoui/components/column_layout.py
+      - ColumnLayout（BaseComponent）
+      - render()（返回 str）
+      - 测试：tests/unit/components/test_column_layout.py
+
+优先级 4（进度与反馈组件）:
+  [ ] src/echoui/components/progress_bar.py
+      - ProgressBar（BaseComponent）
+      - advance()、set_progress()、finish()（返回 self）
+      - advance_async()（异步版本）
+      - 测试：tests/unit/components/test_progress_bar.py
+
+  [ ] src/echoui/components/spinner.py
+      - Spinner（BaseComponent）
+      - update_message()、start()、stop()（返回 self）
+      - __aenter__()、__aexit__()（异步上下文管理器）
+      - 测试：tests/unit/components/test_spinner.py
+
+  [ ] src/echoui/components/timer.py
+      - Timer（BaseComponent）
+      - start()、stop()、print_elapsed()（返回 self）
+      - __aenter__()、__aexit__()（异步上下文管理器）
+      - 测试：tests/unit/components/test_timer.py
+
+  [ ] src/echoui/components/countdown.py
+      - Countdown（BaseComponent）
+      - run()（async，接受 on_tick 回调）
+      - 测试：tests/unit/components/test_countdown.py
+
+优先级 5（输入组件）:
+  [ ] src/echoui/components/async_input.py
+      - AsyncInput（BaseComponent）
+      - readline()（async，返回 str）
+      - 测试：tests/unit/components/test_async_input.py（Mock stdin）
+
+  [ ] src/echoui/components/interactive_selector.py
+      - InteractiveSelector（BaseComponent）
+      - select()（async，返回选中项）
+      - 测试：tests/unit/components/test_interactive_selector.py
+
+  [ ] src/echoui/components/confirm_dialog.py
+      - ConfirmDialog（BaseComponent）
+      - confirm()（async，返回 bool）
+      - 测试：tests/unit/components/test_confirm_dialog.py
+
+  [ ] src/echoui/components/multi_line_input.py
+      - MultiLineInput（BaseComponent）
+      - read()（async，返回 str）
+      - 测试：tests/unit/components/test_multi_line_input.py
+
+  [ ] src/echoui/components/pager.py
+      - Pager（BaseComponent）
+      - display()（async）
+      - 测试：tests/unit/components/test_pager.py
+
+优先级 6（流输出与艺术字）:
+  [ ] src/echoui/components/stream_writer.py
+      - StreamWriter（BaseComponent）
+      - write_text()、write_char()、reset()（返回 self）
+      - write_text_async()（异步版本）
+      - 测试：tests/unit/components/test_stream_writer.py
+
+  [ ] src/echoui/components/ascii_art_builder.py
+      - AsciiArtBuilder（BaseComponent）
+      - build()（返回 str）
+      - 测试：tests/unit/components/test_ascii_art_builder.py
+
+  [ ] src/echoui/components/panel_builder.py
+      - PanelBuilder（BaseComponent）
+      - render()（返回 str）
+      - 测试：tests/unit/components/test_panel_builder.py
+
+优先级 7（适配器）:
+  [ ] src/echoui/adapters/terminal_adapter.py
+      - TerminalAdapter（BaseAdapter）
+      - run()、stop()（同步）
+      - run_async()（异步）
+      - 测试：tests/integration/test_terminal_adapter.py
+
+  [ ] src/echoui/adapters/aiohttp_adapter.py
+      - AiohttpAdapter（BaseAdapter）
+      - 路由注册、请求处理、响应发送
+      - 测试：tests/integration/test_aiohttp_adapter.py
+```
+
+**完成后更新 src/echoui/__init__.py**:
+
+```python
+# 确认 __all__ 包含所有公开组件
+# 确认所有导入路径正确
+# 确认没有循环导入
+```
+
+完成后输出：
+
+```
+[阶段 2 进度报告]
+完成的组件:
+  [OK] src/echoui/components/...（{N} 个）
+  [OK] src/echoui/adapters/...（{N} 个）
+未完成（留给下次会话）:
+  [PENDING] ...
+测试状态: 通过 {N} 个 / 失败 {N} 个
+覆盖率（components）: {N}%（目标 90%）
+```
+
+---
+
+### 阶段 3 任务：测试补全
+
+**目标**: 确保所有覆盖率达标，所有测试通过。
+
+**执行前检查**:
+
+```
+运行完整测试套件，获取当前覆盖率报告
+pytest --cov=src/echoui --cov-report=term-missing -q
+
+识别覆盖率不足的模块（missing 列中的行号）
+识别失败的测试（FAILED 行）
+```
+
+**按优先级处理**:
+
+```
+优先级 1：修复失败的测试
+  - 读取失败测试的错误信息
+  - 判断是实现问题还是测试问题
+    - 实现有 bug → 修复实现
+    - 测试假设错误 → 修复测试（但必须保证测试仍然有意义）
+  - 绝不为了让测试通过而删除测试
+
+优先级 2：补充缺失覆盖的代码路径
+  对于每个覆盖率不足的模块：
+  [ ] 读取 --cov-report=term-missing 中的 missing 行号
+  [ ] 分析未覆盖的代码路径（通常是异常分支、边界条件）
+  [ ] 补充对应的测试用例
+
+  常见未覆盖场景（重点检查）:
+    - 异常分支（传入非法参数）
+    - 边界值（0、负数、空字符串、None）
+    - CJK 混合文本场景
+    - normal_mode=True 和 False 两种路径
+    - Windows 平台代码路径
+
+优先级 3：补充 doctest
+  对于每个公共函数，确认 Examples 中的 doctest 可运行：
+  pytest --doctest-modules src/echoui/ -v
+
+优先级 4：补充集成测试
+  [ ] tests/integration/test_aiohttp_adapter.py（路由注册、404 处理）
+  [ ] tests/integration/test_terminal_adapter.py（启动停止）
+  [ ] tests/integration/test_db_session.py（CRUD 操作）
+
+优先级 5：补充 E2E 测试
+  [ ] tests/e2e/test_chat_flow.py（完整聊天会话）
+  [ ] tests/e2e/test_form_flow.py（表单填写提交）
+```
+
+**覆盖率达标验证**（必须全部通过才能进入阶段 4）:
+
+```bash
+# 核心引擎（必须 >= 95%）
+pytest tests/unit/core/ \
+    --cov=src/echoui/core \
+    --cov-fail-under=95 -q
+
+# 组件库（必须 >= 90%）
+pytest tests/unit/components/ \
+    --cov=src/echoui/components \
+    --cov-fail-under=90 -q
+
+# 工具集（必须 >= 90%）
+pytest tests/unit/utils/ \
+    --cov=src/echoui/utils \
+    --cov-fail-under=90 -q
+
+# 适配层（必须 >= 80%）
+pytest tests/integration/ \
+    --cov=src/echoui/adapters \
+    --cov-fail-under=80 -q
+
+# 整体（必须 >= 90%）
+pytest \
+    --cov=src/echoui \
+    --cov-fail-under=90 \
+    --doctest-modules src/echoui/ -q
+```
+
+完成后输出：
+
+```
+[阶段 3 覆盖率报告]
+core:       {N}%（目标 95%，状态: 达标/未达标）
+components: {N}%（目标 90%，状态: 达标/未达标）
+utils:      {N}%（目标 90%，状态: 达标/未达标）
+adapters:   {N}%（目标 80%，状态: 达标/未达标）
+整体:       {N}%（目标 90%，状态: 达标/未达标）
+测试总数: {N} 通过 / {N} 失败 / {N} 跳过
+```
+
+---
+
+### 阶段 4 任务：自检与修复
+
+**目标**: 消除所有代码质量问题，使项目通过全部静态检查。
+
+**执行顺序**:
+
+```
+步骤 4.1  代码格式化（自动修复，无需手动）
+          black src/ tests/
+          isort src/ tests/
+
+步骤 4.2  类型检查（必须零错误）
+          mypy src/ --strict
+          对每个错误：
+            - 读取错误位置和错误类型
+            - 修复类型注解（不得用 # type: ignore 绕过，除非有充分理由）
+            - 重新运行确认修复
+
+步骤 4.3  代码质量检查
+          pylint src/echoui/
+          flake8 src/ tests/
+          对 CRITICAL 和 ERROR 级别的问题必须修复
+          WARNING 级别评估后决定是否修复
+
+步骤 4.4  禁止行为扫描（在所有 .py 文件中扫描）
+
+          扫描 pass 作为功能实现：
+          grep -rn "^\s*pass\s*$" src/echoui/ \
+              --include="*.py" | grep -v "__pycache__"
+          （在抽象方法中的 pass 允许，其他位置必须删除）
+
+          扫描 print 语句：
+          grep -rn "^\s*print(" src/echoui/ \
+              --include="*.py" | grep -v "__pycache__"
+          （测试文件中的 print 允许，src/ 中一律禁止）
+
+          扫描 f-string 日志：
+          grep -rn 'logger\.\w\+(f"' src/echoui/ \
+              --include="*.py"
+          （发现后改为 %s 格式）
+
+          扫描缺失的 future import：
+          grep -rL "from __future__ import annotations" \
+              src/echoui/ tests/ --include="*.py"
+          （发现后在文件顶部添加）
+
+          扫描硬编码颜色（非 #RRGGBB 格式）：
+          grep -rn '"[a-z]\+"\s*,\s*"#' src/echoui/ \
+              --include="*.py"
+
+步骤 4.5  不可变性检查（人工检查，抽查 5 个最复杂的类）
+          检查是否有原地修改 self._xxx 列表或字典的代码
+          检查链式方法是否全部返回 self
+          检查 frozen dataclass 是否被错误赋值
+
+步骤 4.6  重新运行完整测试套件确认无回归
+          pytest --cov=src/echoui --cov-fail-under=90 -q
+```
+
+完成后输出：
+
+```
+[阶段 4 自检报告]
+black:   通过 / {N} 个文件已格式化
+isort:   通过 / {N} 个文件已排序
+mypy:    {N} 个错误 → 修复后 0 个错误
+pylint:  {N} 个问题 → 修复后 {N} 个（剩余均为 WARNING 级别）
+flake8:  {N} 个问题 → 修复后 0 个
+pass 扫描:    发现 {N} 处 → 已全部修复
+print 扫描:   发现 {N} 处 → 已全部修复
+future 扫描:  发现 {N} 处 → 已全部修复
+最终测试: {N} 通过 / 0 失败
+最终覆盖率: {N}%
+```
+
+---
+
+### 阶段 5 任务：完成验证与文档更新
+
+**目标**: 执行最终验证，更新所有文档，为下次会话留下清晰状态。
+
+**执行顺序**:
+
+```
+步骤 5.1  执行完整质量检查套件（一键命令）
+          black src/ tests/ && \
+          isort src/ tests/ && \
+          mypy src/ --strict && \
+          pylint src/echoui/ && \
+          pytest \
+              --cov=src/echoui \
+              --cov-report=html:htmlcov \
+              --cov-report=term-missing \
+              --cov-fail-under=90 \
+              --doctest-modules src/echoui/ \
+              -v
+          全部通过才继续，有失败则回到对应阶段修复
+
+步骤 5.2  多版本兼容性验证（如果 conda 环境可用）
+          for env in py38 py39 py310 py311 py312 py313 py314; do
+              echo "=== 测试 $env ==="
+              conda run -n $env python -m pytest tests/unit/ -x -q \
+                  2>&1 | tail -3
+          done
+
+步骤 5.3  更新根目录 AGENTS.md
+          - 更新"最后更新"时间戳
+          - 将本次会话发现的任何意外追加到意外日志
+          - 更新"结构性意外"表格（如有新发现）
+          - 删除已过时的条目
+
+步骤 5.4  更新子目录 AGENTS.md（如有高混淆密度子目录）
+          - src/echoui/core/AGENTS.md（如果 core 有特殊约定）
+          - src/echoui/components/AGENTS.md（如果组件有特殊陷阱）
+
+步骤 5.5  验证 src/echoui/__init__.py 的 __all__ 完整性
+          - 确认所有公开组件都在 __all__ 中
+          - 确认所有导入路径可以正常解析
+          python -c "import echoui; print(echoui.__version__)"
+
+步骤 5.6  生成最终状态报告（见下方格式）
+```
+
+**最终状态报告格式**（必须输出）:
+
+```
+======================================
+EchoUI 项目状态报告
+======================================
+
+版本: {echoui.__version__}
+生成时间: {ISO 时间戳}
+
+代码统计:
+  源码文件数:   {N} 个
+  源码总行数:   {N} 行
+  测试文件数:   {N} 个
+  测试用例数:   {N} 个
+
+质量指标:
+  black:          通过
+  isort:          通过
+  mypy (strict):  通过（0 个错误）
+  pylint:         {N} 个 WARNING（0 个 ERROR）
+  flake8:         通过（0 个错误）
+
+测试覆盖率:
+  core/:          {N}%（目标 95%，状态: 达标/未达标）
+  components/:    {N}%（目标 90%，状态: 达标/未达标）
+  utils/:         {N}%（目标 90%，状态: 达标/未达标）
+  adapters/:      {N}%（目标 80%，状态: 达标/未达标）
+  整体:           {N}%（目标 90%，状态: 达标/未达标）
+
+已实现的组件:
+  核心引擎 (core/):     {N}/{N} 个模块完成
+  组件库 (components/): {N}/{N} 个组件完成
+  适配器 (adapters/):   {N}/{N} 个适配器完成
+  工具集 (utils/):      {N}/{N} 个模块完成
+
+未完成的模块（留给下次会话）:
+  {列表，或"无，全部完成"}
+
+发现的意外（已记录到 AGENTS.md）:
+  {列表，或"无"}
+
+本次会话建议（供开发者参考）:
+  {1-3 条具体建议，基于本次会话的发现}
+
+下次会话预计进入: 阶段 {N}
+======================================
+```
+
+---
+
+## 四、第四步：会话结束前的强制操作
+
+无论本次会话处于哪个阶段，在结束前必须执行以下操作：
+
+### 4.1 意外记录检查
+
+```
+回顾本次会话的所有操作，对每个意外情况：
+  - 已记录到 AGENTS.md → 确认
+  - 未记录 → 立即追加（按 MISTAKE_GUIDE.txt 第十二部分模板）
+```
+
+### 4.2 未完成工作记录
+
+```
+在 AGENTS.md 的意外日志中追加：
+
+### {今日 ISO 日期} -- 会话进度记录
+**上下文：** 本次会话执行了阶段 {N} 任务
+**完成情况：** 完成了 {已完成的模块列表}
+**未完成：** {未完成的模块列表}，原因：{时间限制/依赖未就绪/其他}
+**解决方案：** 下次会话收到 TASK.txt 后将自动进入阶段 {N}，继续实现 {具体模块}
+```
+
+### 4.3 阶段状态确认输出
+
+```
+[本次会话结束]
+执行的阶段: 阶段 {N}
+进度: {本次完成的工作摘要，2-3 句话}
+下次会话: 收到 TASK.txt 后将自动识别并进入阶段 {N}，继续 {具体工作}
+AGENTS.md: 已更新（{N} 条新记录）
+```
+
+---
+
+## 五、多轮循环说明（给 Agent 的提示）
+
+本文件（TASK.txt）设计为多轮循环使用。每次收到本文件时：
+
+```
+第 1 轮收到 TASK.txt：
+  → 执行第一步（读取规范）
+  → 执行第二步（扫描项目，判断为阶段 0）
+  → 执行阶段 0 任务（初始化项目结构）
+  → 执行第四步（记录进度）
+
+第 2 轮收到 TASK.txt：
+  → 执行第一步（重新读取规范，刷新记忆）
+  → 执行第二步（扫描项目，判断为阶段 1）
+  → 执行阶段 1 任务（实现核心引擎）
+  → 执行第四步
+
+第 3-N 轮收到 TASK.txt：
+  → 重复上述流程，阶段递进
+  → 直到阶段 5 完成，最终状态报告显示全部达标
+```
+
+**关键原则**:
+
+```
+1. 每次收到 TASK.txt，必须重新读取规范文件（不依赖上次的记忆）
+2. 每次必须重新扫描项目状态（不假设上次的状态不变）
+3. 每次必须从最低未完成阶段开始（不跳过阶段）
+4. 每次结束前必须更新 AGENTS.md
+5. 如果一个阶段在单次会话中无法完全完成，记录进度后下次继续
+6. 同一阶段可能跨越多次会话，直到所有检查项通过
+```
+
+---
+
+## 六、紧急情况处理
+
+### 6.1 发现代码库已有但不符合规范的文件
+
+```
+处理流程：
+1. 不得删除，先读取理解现有实现意图
+2. 识别具体的规范违反点
+3. 告知开发者："发现文件 {路径} 存在以下规范问题：{列表}"
+4. 制定修复计划，按优先级逐步修复
+5. 修复后记录到 AGENTS.md
+```
+
+### 6.2 发现循环导入
+
+```
+处理流程：
+1. 使用 TYPE_CHECKING 块隔离仅类型检查时需要的导入
+2. 重构模块依赖关系（被依赖的模块不得反向导入依赖它的模块）
+3. 如果无法避免，将共享类型定义提取到独立的 types.py 文件
+4. 记录到 AGENTS.md
+```
+
+### 6.3 发现测试无法通过且原因不明
+
+```
+处理流程：
+1. 隔离问题：pytest {具体测试文件}::{具体测试方法} -v -s
+2. 添加临时调试 logging（不是 print）
+3. 分析是实现问题还是测试问题
+4. 修复实现（优先），或修复测试（如果测试假设确实有误）
+5. 绝不注释掉测试来让覆盖率通过
+6. 记录到 AGENTS.md
+```
+
+### 6.4 文件超出行数限制
+
+```
+处理流程：
+1. 识别可以提取的功能单元（辅助函数、内部类、工具方法）
+2. 创建新文件（命名为 {原文件名}_{功能}.py）
+3. 迁移代码，更新导入
+4. 验证测试仍然通过
+5. 如果是测试文件超长，按测试类拆分到子文件
+```
+
+---
+
+**文档结束**
+
+每次收到本文件（TASK.txt），立即从第一步开始执行，无需确认。
+本文件是会话的唯一入口，所有详细规范通过第一步的读取操作获取。
+```
+你要做的是全自动执行，无需停下等我审查，完成'task.txt'要求的所有任务，禁止有任何文件夹是空着没源码的。

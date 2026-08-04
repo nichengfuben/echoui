@@ -1,0 +1,38 @@
+[main]
+py-version = 3.8
+ignore = venv, build, dist, .git, examples
+jobs = 0
+
+[messages_control]
+disable =
+    C0114,
+    C0115,
+    C0116,
+    W0511,
+    R0903,
+    R0913,
+    R0902,
+    R0914,
+    C0301,
+    R0801,
+    W1203,
+    W0718,
+    W0719,
+    R1705,
+    R1710,
+    R1725,
+    W0212,
+
+[design]
+max-args = 10
+max-locals = 25
+max-returns = 10
+max-branches = 20
+max-statements = 80
+max-attributes = 15
+
+[format]
+max-line-length = 88
+
+[basic]
+good-names = i, j, k, ex, Run, _, f, ui, ws, id

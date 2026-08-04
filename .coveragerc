@@ -1,0 +1,27 @@
+[run]
+source = src/echoui
+omit =
+    */tests/*
+    */__pycache__/*
+    */venv/*
+    */examples/*
+
+[report]
+show_missing = true
+skip_covered = false
+fail_under = 90
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov
+title = EchoUI Coverage Report
+
+[xml]
+output = coverage.xml
