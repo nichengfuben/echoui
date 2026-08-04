@@ -33,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/echoui/echoui"
-Documentation = "https://github.com/echoui/echoui#readme"
-Repository = "https://github.com/echoui/echoui"
-Issues = "https://github.com/echoui/echoui/issues"
+Homepage = "https://github.com/nichengfuben/echoui"
+Documentation = "https://github.com/nichengfuben/echoui#readme"
+Repository = "https://github.com/nichengfuben/echoui"
+Issues = "https://github.com/nichengfuben/echoui/issues"
 
 [project.optional-dependencies]
 flask = ["flask>=2.3.0"]
