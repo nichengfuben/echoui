@@ -14,9 +14,9 @@
 | `.agents/MISTAKE_GUIDE.txt` | 已读取，记录 12 条 [CRITICAL] 禁止行为 |
 | `.agents/CODE_GUIDE.txt` | 已读取，记录项目架构与开发规范 |
 | `.agents/AGENTS_MD_GUIDE.txt` | 已读取，记录 AGENTS.md 生成工作流程 |
-| `AGENTS.md` (本文件) | 已更新，2026-05-16（会话 5） |
+| `AGENTS.md` (本文件) | 已更新，2026-08-04（会话 6） |
 
-**最后更新：** 2026-05-16（会话 5）
+**最后更新：** 2026-08-04（会话 6）
 **项目身份：** EchoUI - 纯 Python 终端 UI 框架，通过 ASCII/ANSI 字符在终端中渲染界面，使用调用链驱动的组件 API。
 
 ---
@@ -169,6 +169,18 @@
 **意外：** `@dataclass` 不会将类属性的 Field 描述符转换为实例字段，导致 `User(name="张三")` 抛出 `TypeError: unexpected keyword argument`
 **解决方案：** 使用 `@dataclass(init=False)` 并在自定义 `__init__` 中遍历 MRO 收集 Field 描述符，通过 `object.__setattr__` 设置实例属性。同时基础字段（id/created_at/updated_at）使用 `kwargs.get()` 而非条件判断，以支持 update 场景传入已有值
 **补充：** `dataclasses.replace()` 不适用于 `init=False` 的自定义 dataclass，session.update() 需手动复制属性字典再构造新实例
+
+### 2026-08-04 -- 全量交付 gh/pypi/ci/localinstall
+**上下文：** 用户要求补全 GitHub、PyPI、CI、本地安装交付链路
+**实现内容：**
+- 创建 `.github/workflows/ci.yml`（多平台/多版本测试 + 构建）
+- 创建 `.github/workflows/publish.yml`（Release 触发 PyPI 发布）
+- 创建 `scripts/localinstall.ps1` 与 `scripts/localinstall.sh`
+- 完善 `pyproject.toml`（classifiers、optional-dependencies、project.urls）
+- 本地验证：491 passed，`python -m build` + `twine check` 通过
+- GitHub：推送 `release/2.0.0` 分支 + `v2.0.0` tag + Release
+- PyPI：发布 `echoui==2.0.0`（https://pypi.org/project/echoui/2.0.0/）
+**注意：** 远程 `main` 仍为 1.2.x 通用 UI 框架历史，未 force push；v2 在 `release/2.0.0` 分支
 
 <!-- 当你遇到意外时，在此追加：
 ### {ISO 日期} -- {标题}

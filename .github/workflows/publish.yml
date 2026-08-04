@@ -5,9 +5,6 @@ on:
     types: [published]
   workflow_dispatch:
 
-permissions:
-  id-token: write
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -31,7 +28,8 @@ jobs:
           python -m build
           twine check dist/*
 
-      - name: Publish to PyPI (trusted publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/* --disable-progress-bar
