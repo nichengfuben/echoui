@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest \
+          pytest tests/ \
             --cov=src/echoui \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
