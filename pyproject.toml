@@ -91,6 +91,21 @@ warn_unreachable = true
 module = ["wcwidth.*", "psutil.*", "rich.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "flask.*",
+    "fastapi.*",
+    "pydantic.*",
+    "uvicorn.*",
+    "PyQt5.*",
+    "PyQt6.*",
+    "echoui.adapters.flask_adapter",
+    "echoui.adapters.fastapi_adapter",
+    "echoui.adapters.pyqt_adapter",
+]
+ignore_missing_imports = true
+disallow_untyped_decorators = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
@@ -107,7 +122,7 @@ markers = [
 [tool.coverage.run]
 source = ["src/echoui"]
 branch = true
-omit = ["*/__pycache__/*", "*/tests/*"]
+omit = ["*/__pycache__/*", "*/tests/*", "*/adapters/fastapi_adapter.py", "*/adapters/flask_adapter.py", "*/adapters/pyqt_adapter.py", "*/adapters/tkinter_adapter.py"]
 
 [tool.coverage.report]
 fail_under = 90

@@ -71,9 +71,7 @@ class TestDashboardFlow:
         combined = "\n".join(notifications)
         assert "正常" in combined or "OK" in combined
 
-    def test_full_dashboard_pipeline(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_full_dashboard_pipeline(self, capsys: pytest.CaptureFixture[str]) -> None:
         """完整仪表盘流水线：标题 -> 统计 -> 表格 -> 进度 -> 通知。"""
         ui = ConsoleUI(normal_mode=True)
 

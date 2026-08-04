@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from echoui.adapters.base_adapter import BaseAdapter
 from echoui.components.console_ui import ConsoleUI

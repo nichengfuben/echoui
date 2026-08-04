@@ -80,6 +80,7 @@ class AiohttpAdapter(BaseAdapter):
     def run(self) -> None:
         """同步阻塞启动 aiohttp 服务。"""
         import asyncio
+
         from echoui.utils.compat import configure_platform
 
         configure_platform()
@@ -101,6 +102,7 @@ class AiohttpAdapter(BaseAdapter):
         """停止 aiohttp 服务。"""
         if self._runner is not None:
             import asyncio
+
             loop = asyncio.new_event_loop()
             try:
                 loop.run_until_complete(self._runner.cleanup())

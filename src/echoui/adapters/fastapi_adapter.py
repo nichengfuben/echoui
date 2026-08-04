@@ -4,7 +4,6 @@ import logging
 from typing import Any, Callable
 
 from fastapi import APIRouter, FastAPI
-from pydantic import BaseModel
 
 from echoui.adapters.base_adapter import BaseAdapter
 from echoui.components.console_ui import ConsoleUI
@@ -79,13 +78,14 @@ class FastAPIAdapter(BaseAdapter):
     def run(self) -> None:
         """同步阻塞启动 FastAPI 服务。"""
         import uvicorn
+
         logger.info("FastAPI 服务启动于 %s:%d", self._host, self._port)
         uvicorn.run(self._app, host=self._host, port=self._port)
 
     async def run_async(self) -> None:
         """异步启动 FastAPI 服务。"""
         import uvicorn
-        import asyncio
+
         config = uvicorn.Config(self._app, host=self._host, port=self._port)
         server = uvicorn.Server(config)
         await server.serve()

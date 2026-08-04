@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 
 from echoui.adapters.base_adapter import BaseAdapter
 from echoui.components.console_ui import ConsoleUI
@@ -70,7 +70,12 @@ class FlaskAdapter(BaseAdapter):
             handler: 处理函数。
         """
         super().register_route(method, path, handler)
-        self._app.add_url_rule(path, endpoint=f"{method}_{path}", view_func=handler, methods=[method.upper()])
+        self._app.add_url_rule(
+            path,
+            endpoint=f"{method}_{path}",
+            view_func=handler,
+            methods=[method.upper()],
+        )
 
     def run(self) -> None:
         """同步阻塞启动 Flask 服务。"""
@@ -80,7 +85,10 @@ class FlaskAdapter(BaseAdapter):
     async def run_async(self) -> None:
         """异步启动 Flask 服务（通过线程包装）。"""
         import threading
-        thread = threading.Thread(target=self._app.run, kwargs={"host": self._host, "port": self._port})
+
+        thread = threading.Thread(
+            target=self._app.run, kwargs={"host": self._host, "port": self._port}
+        )
         thread.daemon = True
         thread.start()
         logger.info("Flask 服务在后台线程启动")

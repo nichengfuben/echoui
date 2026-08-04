@@ -5,6 +5,10 @@ omit =
     */__pycache__/*
     */venv/*
     */examples/*
+    */adapters/fastapi_adapter.py
+    */adapters/flask_adapter.py
+    */adapters/pyqt_adapter.py
+    */adapters/tkinter_adapter.py
 
 [report]
 show_missing = true

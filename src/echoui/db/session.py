@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Generator, Generic, Optional, Type, TypeVar
+from typing import Any, AsyncGenerator, Optional, Type, TypeVar
 
-from echoui.core.exceptions import AdapterError
 from echoui.db.model import Model
 
 logger = logging.getLogger(__name__)

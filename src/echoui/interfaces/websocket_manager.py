@@ -112,10 +112,7 @@ class WebSocketManager:
                 logger.error("广播失败 %s: %s", conn_id, exc)
                 results[conn_id] = False
 
-        tasks = [
-            _send(conn_id, conn)
-            for conn_id, conn in self._connections.items()
-        ]
+        tasks = [_send(conn_id, conn) for conn_id, conn in self._connections.items()]
         await asyncio.gather(*tasks)
         return results
 

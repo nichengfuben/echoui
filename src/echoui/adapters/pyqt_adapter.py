@@ -62,9 +62,11 @@ class PyQtAdapter(BaseAdapter):
         """获取可用的 Qt 模块（PyQt6 > PyQt5）。"""
         try:
             from PyQt6 import QtWidgets
+
             return QtWidgets
         except ImportError:
             from PyQt5 import QtWidgets
+
             return QtWidgets
 
     def run(self) -> None:

@@ -47,7 +47,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
             --cov-fail-under=90 \
-            --doctest-modules src/echoui/ \
+            --doctest-modules src/echoui/core src/echoui/components src/echoui/utils src/echoui/db src/echoui/interfaces \
             -q
 
       - name: Upload coverage

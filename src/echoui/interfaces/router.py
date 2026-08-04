@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Coroutine, Optional
+from typing import Any, Callable, Optional
 
 from echoui.core.exceptions import ConfigError
 

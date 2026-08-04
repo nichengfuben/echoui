@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, Optional, Type, TypeVar
+from typing import Callable, Generic, Optional, Type, TypeVar
 
 from echoui.db.model import Model
 from echoui.db.session import AsyncSession
@@ -21,7 +21,7 @@ class QueryBuilder(Generic[_T]):
         ...     __tablename__ = "users"
         ...     name = Field(str)
         >>> qb = QueryBuilder(User)
-        >>> qb.model_cls is User
+        >>> qb._model_cls is User
         True
     """
 

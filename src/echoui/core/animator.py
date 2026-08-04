@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -106,12 +106,11 @@ class Animator:
                     break
 
                 for frame_fn in self._frames:
-                    if not self._running:
-                        break
-                    frame_output = frame_fn()
-                    if render_fn is not None:
-                        await render_fn(frame_output)
-                    await asyncio.sleep(frame_interval)
+                    if self._running:
+                        frame_output = frame_fn()
+                        if render_fn is not None:
+                            await render_fn(frame_output)
+                        await asyncio.sleep(frame_interval)
 
                 cycle_count += 1
         finally:
